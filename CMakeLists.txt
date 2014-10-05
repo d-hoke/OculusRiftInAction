@@ -125,7 +125,8 @@ list(APPEND EXAMPLE_LIBS OpenCTM)
 # Computer vision library with advanced image loading and manipulation 
 # functionality.  
 # OpenCV is OPTIONAL.  
-#find_package( OpenCV QUIET)
+set(OpenCV_DIR c:/dev/opencv-2.4.9/build)
+find_package( OpenCV REQUIRED)
 if (OpenCV_FOUND) 
     include_directories(${OpenCV_INCLUDE_DIRS})
     list(APPEND EXAMPLE_LIBS ${OpenCV_LIBS})
