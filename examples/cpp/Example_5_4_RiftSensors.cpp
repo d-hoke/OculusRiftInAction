@@ -14,7 +14,7 @@ class CubeScene_RiftSensors: public CubeScene {
 
 public:
   CubeScene_RiftSensors() {
-    if (!ovrHmd_ConfigureTracking(hmd, 
+    if (!ovrHmd_ConfigureTracking(hmd,
         ovrTrackingCap_Orientation |
         ovrTrackingCap_Position, 0)) {
       SAY("Warning: Unable to locate Rift sensor device.  This demo is boring now.");
@@ -48,7 +48,7 @@ public:
       eyeArg.frameBuffer.init(Rift::fromOvr(texSize));
       ((ovrGLTexture&)textures[eye]).OGL.TexId = eyeArg.frameBuffer.color->texture;
 
-      ovrVector3f offset = eyeRenderDescs[eye].ViewAdjust;
+      ovrVector3f offset = eyeRenderDescs[eye].HmdToEyeViewOffset;
       ovrMatrix4f projection = ovrMatrix4f_Projection(fov, 0.01f, 100, true);
 
       eyeArg.projection = Rift::fromOvr(projection);
@@ -69,7 +69,7 @@ public:
       PerEyeArg & eyeArgs = eyes[eye];
       gl::Stacks::projection().top() = eyeArgs.projection;
 
-      eyePoses[eye] = ovrHmd_GetEyePose(hmd, eye);
+      eyePoses[eye] = ovrHmd_GetHmdPosePerEye(hmd, eye);
 
       eyeArgs.frameBuffer.withFramebufferActive([&]{
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

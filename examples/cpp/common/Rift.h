@@ -249,6 +249,7 @@ protected:
 
 private:
   ovrEyeRenderDesc eyeRenderDescs[2];
+  ovrVector3f hmdToEyeViewOffset[2];
   gl::FrameBufferWrapper frameBuffers[2];
   glm::mat4 projections[2];
   glm::mat4 orthoProjections[2];

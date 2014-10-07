@@ -32,10 +32,10 @@ class AsyncTimewarpExample : public RiftGlfwApp {
 
 public:
   AsyncTimewarpExample() {
-    ipd = ovrHmd_GetFloat(hmd, 
+    ipd = ovrHmd_GetFloat(hmd,
       OVR_KEY_IPD, OVR_DEFAULT_IPD);
-    eyeHeight = ovrHmd_GetFloat(hmd, 
-      OVR_KEY_PLAYER_HEIGHT, 
+    eyeHeight = ovrHmd_GetFloat(hmd,
+      OVR_KEY_PLAYER_HEIGHT,
       OVR_DEFAULT_PLAYER_HEIGHT);
 
     int trackingCaps = 0
@@ -65,7 +65,7 @@ public:
       glm::vec3(0, 1, 0)));
 
     for_each_eye([&](ovrEyeType eye){
-      ovrSizei eyeTextureSize = 
+      ovrSizei eyeTextureSize =
         ovrHmd_GetFovTextureSize(hmd, eye, hmd->MaxEyeFov[eye], 1.0f);
       ovrTextureHeader & eyeTextureHeader = eyeTextures[eye].Header;
       eyeTextureHeader.TextureSize = eyeTextureSize;
@@ -147,6 +147,13 @@ public:
     static const float ROOT_2 = sqrt(2.0f);
     static const float INV_ROOT_2 = 1.0f / ROOT_2;
 
+    // Synchronization to determine when a given eye's render commands have completed
+    GLsync eyeFences[2]{0, 0};
+    // The index of the current rendering target framebuffer.
+    int backBuffers[2]{0, 0};
+    // The pose for each rendered framebuffer
+    ovrPosef backPoses[2];
+
     if (action == GLFW_PRESS) {
       switch (key) {
       case GLFW_KEY_ESCAPE:
@@ -197,7 +204,7 @@ public:
 
   void draw() {
     // Synchronization to determine when a given eye's render commands have completed
-    // The index of the current rendering target framebuffer.  
+    // The index of the current rendering target framebuffer.
     static int renderBuffers[2]{0, 0};
     // The pose for each rendered framebuffer
     static ovrPosef renderPoses[2];
@@ -205,7 +212,7 @@ public:
     for (int i = 0; i < 2; ++i) {
       ovrEyeType eye = hmd->EyeRenderOrder[i];
       // We can only acquire an eye pose between beginframe and endframe.
-      // So we've arranged for the lock to be only open at those points.  
+      // So we've arranged for the lock to be only open at those points.
       // The main thread will spend most of it's time in the wait.
       {
         std::unique_lock<std::mutex> locker(ovrLock);
@@ -223,7 +230,7 @@ public:
         mv.preMultiply(eyeArgs.translation);
 
         int renderBufferIndex = renderBuffers[eye];
-        gl::FrameBufferWrapper & frameBuffer = 
+        gl::FrameBufferWrapper & frameBuffer =
           frameBuffers[eye][renderBufferIndex];
         // Render the scene to an offscreen buffer
         frameBuffer.activate();
@@ -256,7 +263,7 @@ public:
       GlUtils::renderCubeScene(ipd, eyeHeight);
     });
 
-    std::string maxfps = perEyeDelay ? 
+    std::string maxfps = perEyeDelay ?
       Platform::format("%0.2f", 500.0f / perEyeDelay) : "N/A";
     std::string message =
       Platform::format("Per Eye Delay %dms\nMax FPS %s",
@@ -265,7 +272,7 @@ public:
 
     // Simulate some really slow rendering
     if (0 != perEyeDelay) {
-      ovr_WaitTillTime(ovr_GetTimeInSeconds() + 
+      ovr_WaitTillTime(ovr_GetTimeInSeconds() +
         (float)perEyeDelay / 1000.0f);
     }
   }

@@ -48,6 +48,8 @@ endif()
 # The primary SDK artifact, a static library for Oculus access 
 add_subdirectory(libraries/OculusSDK/LibOVR)
 set_target_properties(OculusVR PROPERTIES FOLDER "3rdparty")
+list(APPEND EXAMPLE_LIBS OculusVR)
+list(APPEND EXAMPLE_LIBS edid)
 
 add_definitions(-DGLEW_STATIC)
 add_subdirectory(libraries/glew)
@@ -55,10 +57,10 @@ set_target_properties(glew PROPERTIES FOLDER "3rdparty")
 include_directories(${CMAKE_SOURCE_DIR}/libraries/glew/include)
 list(APPEND EXAMPLE_LIBS glew)
 
-add_subdirectory(libraries/OculusSDK/Bindings/C)
-set_target_properties(OVR_C PROPERTIES FOLDER "3rdparty")
-include_directories(libraries/OculusSDK/Bindings/C/Include)
-list(APPEND EXAMPLE_LIBS OVR_C)
+#add_subdirectory(libraries/OculusSDK/Bindings/C)
+#set_target_properties(OVR_C PROPERTIES FOLDER "3rdparty")
+include_directories(libraries/OculusSDK/LibOVR/Src/)
+#list(APPEND EXAMPLE_LIBS OVR_C)
 
 ###############################################################################
 #

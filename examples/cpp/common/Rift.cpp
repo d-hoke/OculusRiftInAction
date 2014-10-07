@@ -47,13 +47,13 @@ void RiftApp::initGl() {
   cfg.OGL.Header.RTSize = Rift::toOvr(windowSize);
   cfg.OGL.Header.Multisample = 1;
 
-  int distortionCaps = 0 
+  int distortionCaps = 0
     | ovrDistortionCap_Vignette
     | ovrDistortionCap_Chromatic
     | ovrDistortionCap_TimeWarp
     ;
 
-  int configResult = ovrHmd_ConfigureRendering(hmd, &cfg.Config,
+  char configResult = ovrHmd_ConfigureRendering(hmd, &cfg.Config,
     distortionCaps, hmd->MaxEyeFov, eyeRenderDescs);
 
 #ifdef _DEBUG
@@ -64,10 +64,11 @@ void RiftApp::initGl() {
     const ovrEyeRenderDesc & erd = eyeRenderDescs[eye];
     ovrMatrix4f ovrPerspectiveProjection = ovrMatrix4f_Projection(erd.Fov, 0.01f, 100000.0f, true);
     projections[eye] = Rift::fromOvr(ovrPerspectiveProjection);
+    hmdToEyeViewOffset[eye] = erd.HmdToEyeViewOffset;
     glm::vec2 orthoScale = glm::vec2(1.0f) / Rift::fromOvr(erd.PixelsPerTanAngleAtCenter);
-    orthoProjections[eye] = Rift::fromOvr(
-        ovrMatrix4f_OrthoSubProjection(
-            ovrPerspectiveProjection, Rift::toOvr(orthoScale), orthoDistance, erd.ViewAdjust.x));
+//    orthoProjections[eye] = Rift::fromOvr(
+//        ovrMatrix4f_OrthoSubProjection(
+//            ovrPerspectiveProjection, Rift::toOvr(orthoScale), orthoDistance, erd.ViewAdjust.x));
   });
 
   ///////////////////////////////////////////////////////////////////////////
@@ -83,7 +84,7 @@ void RiftApp::initGl() {
   glm::uvec2 frameBufferSize = Rift::fromOvr(eyeTextures[0].Header.TextureSize);
   for_each_eye([&](ovrEyeType eye) {
     frameBuffers[eye].init(frameBufferSize);
-    ((ovrGLTexture&)(eyeTextures[eye])).OGL.TexId = 
+    ((ovrGLTexture&)(eyeTextures[eye])).OGL.TexId =
       frameBuffers[eye].color->texture;
   });
   GL_CHECK_ERROR;
@@ -119,10 +120,14 @@ void RiftApp::applyEyePoseAndOffset(const glm::mat4 & eyePose, const glm::vec3 &
 
 void RiftApp::draw() {
   static int frameIndex = 0;
-  ovrHmd_BeginFrame(hmd, frameIndex++);
+  ovrHmd_BeginFrame(hmd, ++frameIndex);
   gl::MatrixStack & mv = gl::Stacks::modelview();
   gl::MatrixStack & pr = gl::Stacks::projection();
   static ovrPosef eyePoses[2];
+
+  ovrTrackingState trackingState;
+  ovrHmd_GetEyePoses(hmd, frameIndex, hmdToEyeViewOffset, eyePoses, &trackingState);
+
   for (int i = 0; i < 2; ++i) {
     ovrEyeType eye = currentEye = hmd->EyeRenderOrder[i];
     gl::Stacks::with_push(pr, mv, [&]{
@@ -134,7 +139,6 @@ void RiftApp::draw() {
         pr.top() = ovrProj;
       }
 
-      eyePoses[eye] = ovrHmd_GetEyePose(hmd, eye);
       // Set up the per-eye modelview matrix
       {
         // Apply the head pose

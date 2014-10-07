@@ -25,6 +25,7 @@ protected:
   ovrHmd                  hmd{ 0 };
   EyeArgs                 perEyeArgs[2];
   ovrTexture              textures[2];
+  ovrVector3f             hmdToEyeViewOffsets[2];
   float                   eyeHeight{ OVR_DEFAULT_EYE_HEIGHT };
   float                   ipd{ OVR_DEFAULT_IPD };
   glm::mat4               player;
@@ -78,7 +79,7 @@ public:
       windowIdentifier = glfwGetCocoaWindow(window);
     });
     ON_LINUX([&]{
-      windowIdentifier = glfwGetX11Window(window);
+      windowIdentifier = (void*)glfwGetX11Window(window);
     });
 
     ovrHmd_AttachToWindow(hmd, windowIdentifier, nullptr, nullptr);
@@ -105,7 +106,7 @@ public:
       ((ovrGLTexture&)textures[eye]).OGL.TexId = eyeArgs.framebuffer.color->texture;
     });
 
-    ovrGLConfig cfg; 
+    ovrGLConfig cfg;
     memset(&cfg, 0, sizeof(ovrGLConfig));
     cfg.OGL.Header.API = ovrRenderAPI_OpenGL;
     cfg.OGL.Header.RTSize = hmd->Resolution;
@@ -120,9 +121,9 @@ public:
       cfg.OGL.Win = 0;
     });
 
-    int distortionCaps = 
-      ovrDistortionCap_TimeWarp | 
-      ovrDistortionCap_Chromatic | 
+    int distortionCaps =
+      ovrDistortionCap_TimeWarp |
+      ovrDistortionCap_Chromatic |
       ovrDistortionCap_Vignette;
 
     ovrEyeRenderDesc              eyeRenderDescs[2];
@@ -133,8 +134,9 @@ public:
       EyeArgs & eyeArgs = perEyeArgs[eye];
       eyeArgs.projection = Rift::fromOvr(
         ovrMatrix4f_Projection(eyeFovPorts[eye], 0.01, 100, true));
-      eyeArgs.viewOffset = glm::translate(glm::mat4(), 
-        Rift::fromOvr(eyeRenderDescs[eye].ViewAdjust));
+      hmdToEyeViewOffsets[eye] = eyeRenderDescs[eye].HmdToEyeViewOffset;
+      eyeArgs.viewOffset = glm::translate(glm::mat4(),
+        Rift::fromOvr(eyeRenderDescs[eye].HmdToEyeViewOffset));
     });
   }
 
@@ -194,8 +196,9 @@ public:
   void draw() {
     static int frameIndex = 0;
     static ovrPosef eyePoses[2];
-    ovrHmd_BeginFrame(hmd, frameIndex++);
+    ovrHmd_BeginFrame(hmd, ++frameIndex);
     glEnable(GL_DEPTH_TEST);
+    ovrHmd_GetEyePoses(hmd, frameIndex,hmdToEyeViewOffsets, eyePoses, nullptr);
     for( int i = 0; i < 2; ++i) {
       ovrEyeType eye = hmd->EyeRenderOrder[i];
       EyeArgs & eyeArgs = perEyeArgs[eye];
@@ -203,7 +206,6 @@ public:
       gl::MatrixStack & mv = gl::Stacks::modelview();
 
       eyeArgs.framebuffer.activate();
-      eyePoses[eye] = ovrHmd_GetEyePose(hmd, eye);
       mv.withPush([&]{
         // Apply the per-eye offset & the head pose
         mv.top() = eyeArgs.viewOffset * glm::inverse(Rift::fromOvr(eyePoses[eye])) * mv.top();

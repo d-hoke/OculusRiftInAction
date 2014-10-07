@@ -53,7 +53,7 @@ public:
   }
 
   void renderEye(ovrEyeType eye) {
-    viewport(eye);
+    //viewport(eye);
     textures[eye]->bind();
     quadGeometry->draw();
   }

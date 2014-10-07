@@ -23,7 +23,7 @@ class ClientSideDistortionExample : public RiftGlfwApp {
 
 public:
   ClientSideDistortionExample() {
-    ovrHmd_ConfigureTracking(hmd, 
+    ovrHmd_ConfigureTracking(hmd,
       ovrTrackingCap_Orientation |
       ovrTrackingCap_Position, 0);
     ovrHmd_ResetFrameTiming(hmd, 0);
@@ -43,7 +43,7 @@ public:
       // Set up the per-eye projection matrix
       eyeArg.projection = Rift::fromOvr(
         ovrMatrix4f_Projection(fov, 0.01, 100000, true));
-      eyeArg.viewOffset = glm::translate(glm::mat4(), Rift::fromOvr(renderDesc.ViewAdjust));
+      eyeArg.viewOffset = glm::translate(glm::mat4(), Rift::fromOvr(renderDesc.HmdToEyeViewOffset));
       ovrRecti texRect;
       texRect.Size = ovrHmd_GetFovTextureSize(hmd, eye,
         hmd->DefaultEyeFov[eye], 1.0f);
@@ -105,8 +105,8 @@ public:
       const EyeArg & eyeArg = eyeArgs[eye];
       // Set up the per-eye projection matrix
       gl::Stacks::projection().top() = eyeArg.projection;
-      
-      ovrPosef pose = ovrHmd_GetEyePose(hmd, eye);
+
+      ovrPosef pose = ovrHmd_GetHmdPosePerEye(hmd, eye);
       eyeArg.frameBuffer.activate();
       gl::MatrixStack & mv = gl::Stacks::modelview();
       gl::Stacks::with_push([&]{
