@@ -22,7 +22,7 @@ protected:
   }
 
   void startCapture() {
-    captureThread = std::thread(&CaptureHandler::operator(), this);
+    //captureThread = std::thread(&CaptureHandler::operator(), this);
   }
 
   const T & getCaptureResult() const {
@@ -36,7 +36,7 @@ public:
 
 class WebcamHandler : public CaptureHandler<cv::Mat> {
 private:
-  cv::VideoCapture videoCapture{ 1 };
+  cv::VideoCapture videoCapture;
   cv::Size imageSize{ 1280, 720 };
   cv::Mat cameraMatrix;
   cv::Mat distCoeffs;
@@ -46,9 +46,10 @@ protected:
   double lastFrameTimes[2];
 
   WebcamHandler() {
+    videoCapture.open(3);
     cv::Mat view, rview, map1, map2;
 
-    
+
     cv::FileStorage fs(CAMERA_PARAMS_FILE, cv::FileStorage::READ); // Read the settings
     if (fs.isOpened()) {
       fs["Camera_Matrix"] >> cameraMatrix;
@@ -56,7 +57,7 @@ protected:
       hasCalibration = true;
     }
 
-
+    return;
     if (!videoCapture.grab()) {
       FAIL("Failed grab");
     }
@@ -67,6 +68,12 @@ protected:
     captureResult = cv::Mat::zeros(imageSize, CV_8UC3);
   }
 
+  virtual ~WebcamHandler() {
+    captureThread.join();
+    if (videoCapture.isOpened()) {
+      videoCapture.release();
+    }
+  }
   virtual void operator()() {
     int framecount = 0;
     long start = Platform::elapsedMillis();
@@ -177,7 +184,7 @@ public:
     gl::Texture2d::unbind();
 
 
-    videoGeometry = GlUtils::getQuadGeometry(1280.0f / 720.0f); 
+    videoGeometry = GlUtils::getQuadGeometry(1280.0f / 720.0f);
     //DistortionHelper(k).createDistortionMesh(glm::uvec2(64, 64), glm::aspect(getCaptureSize()));
     //videoGeometry = GlUtils::getQuadGeometry(glm::aspect(getCaptureSize()));
   }
@@ -194,8 +201,8 @@ public:
     }
 
 #ifdef USE_RIFT
-    double currentWebcamLatency = (float)(Platform::elapsedMillis() - lastWebcamImage) / 1000.0f;
-    double webcamPredictionTime = ovr_GetTimeInSeconds() - currentWebcamLatency;
+    double currentWebcamLatency = 0;  // (float)(Platform::elapsedMillis() - lastWebcamImage) / 1000.0f;
+    double webcamPredictionTime = 0; // ovr_GetTimeInSeconds() - currentWebcamLatency;
     ovrTrackingState webcamState = ovrHmd_GetTrackingState(hmd, ovr_GetTimeInSeconds() + webcamPredictionTime);
     webcamOrientation = Rift::fromOvr(webcamState.HeadPose.ThePose.Orientation);
     predictionDelta = webcamOrientation; //* glm::inverse(Rift::fromOvr(webcamState.Recorded.Pose.Orientation));
@@ -214,6 +221,7 @@ public:
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_DEPTH_TEST);
     GlUtils::renderSkybox(Resource::IMAGES_SKY_CITY_XNEG_PNG);
+    return;
     gl::MatrixStack & mv = gl::Stacks::modelview();
     mv.with_push([&]{
       mv.preMultiply(glm::mat4_cast(predictionDelta));

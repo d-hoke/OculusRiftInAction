@@ -64,7 +64,7 @@ void RiftApp::initGl() {
     const ovrEyeRenderDesc & erd = eyeRenderDescs[eye];
     ovrMatrix4f ovrPerspectiveProjection = ovrMatrix4f_Projection(erd.Fov, 0.01f, 100000.0f, true);
     projections[eye] = Rift::fromOvr(ovrPerspectiveProjection);
-    hmdToEyeViewOffset[eye] = erd.HmdToEyeViewOffset;
+    //hmdToEyeViewOffset[eye] = erd.HmdToEyeViewOffset;
     glm::vec2 orthoScale = glm::vec2(1.0f) / Rift::fromOvr(erd.PixelsPerTanAngleAtCenter);
 //    orthoProjections[eye] = Rift::fromOvr(
 //        ovrMatrix4f_OrthoSubProjection(
@@ -143,7 +143,7 @@ void RiftApp::draw() {
       {
         // Apply the head pose
         glm::mat4 eyePose = Rift::fromOvr(eyePoses[eye]);
-        glm::vec3 eyeOffset = Rift::fromOvr(erd.ViewAdjust);
+        glm::vec3 eyeOffset = glm::vec3(0); // Rift::fromOvr(erd.ViewAdjust);
         applyEyePoseAndOffset(eyePose, eyeOffset);
       }
 
