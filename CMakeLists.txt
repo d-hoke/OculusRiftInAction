@@ -78,7 +78,7 @@ add_subdirectory(libraries/glfw)
 set_target_properties(glfw PROPERTIES FOLDER "3rdparty")
 include_directories(${CMAKE_SOURCE_DIR}/libraries/glfw/include)
 #message(FATAL_ERROR ${GLFW_LIBRARIES})
-list(APPEND EXAMPLE_LIBS glfw ${GLFW_LIBRARIES} Xinerama Xcursor)
+list(APPEND EXAMPLE_LIBS glfw ${GLFW_LIBRARIES} )
 
 # OpenCTM - a 3D mesh compression
 add_subdirectory(libraries/OpenCTM)
