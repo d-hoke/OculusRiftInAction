@@ -30,6 +30,7 @@ protected:
   float                   eyeHeight{ OVR_DEFAULT_EYE_HEIGHT };
   float                   ipd{ OVR_DEFAULT_IPD };
   glm::mat4               player;
+  GLFWwindow *            renderContext;
 
 public:
   HelloRift() {
@@ -48,6 +49,9 @@ public:
       ovrTrackingCap_Position, 0);
     windowPosition = glm::ivec2(hmd->WindowsPos.x, hmd->WindowsPos.y);
     windowSize = glm::uvec2(hmd->Resolution.w, hmd->Resolution.h);
+    ON_LINUX([&]{
+      std::swap(windowSize.x, windowSize.y);
+    });
     resetPosition();
   }
 
@@ -61,6 +65,20 @@ public:
     static const glm::vec3 LOOKAT = glm::vec3(0, eyeHeight, 0);
     player = glm::inverse(glm::lookAt(EYE, LOOKAT, GlUtils::UP));
     ovrHmd_RecenterPose(hmd);
+  }
+
+  static void swapBuffers(void * contextData) {
+    HelloRift * pApp = reinterpret_cast<HelloRift*>(contextData);
+    glfwSwapBuffers(pApp->window);
+  }
+
+  static void contextSwitch(void * contextData, ovrBool enable) {
+    HelloRift * pApp = reinterpret_cast<HelloRift*>(contextData);
+    if (enable) {
+      glfwMakeContextCurrent(pApp->window);
+    } else {
+      glfwMakeContextCurrent(pApp->renderContext);
+    }
   }
 
   virtual void finishFrame() {
@@ -90,19 +108,18 @@ public:
       }
     }
 
-    void * windowIdentifier = nullptr;
-    ON_WINDOWS([&]{
-      windowIdentifier = glfwGetWin32Window(window);
-    });
-    ON_MAC([&]{
-      windowIdentifier = glfwGetCocoaWindow(window);
-    });
-    ON_LINUX([&]{
-      windowIdentifier = (void*)glfwGetX11Window(window);
-    });
-
     ovrHmd_SetEnabledCaps(hmd, ovrHmdCap_LowPersistence | ovrHmdCap_DynamicPrediction);
     if (directMode) {
+        void * windowIdentifier = nullptr;
+        ON_WINDOWS([&]{
+          windowIdentifier = glfwGetWin32Window(window);
+        });
+        ON_MAC([&]{
+          windowIdentifier = glfwGetCocoaWindow(window);
+        });
+        ON_LINUX([&]{
+          windowIdentifier = (void*)glfwGetX11Window(window);
+        });
         ovrHmd_AttachToWindow(hmd, windowIdentifier, nullptr, nullptr);
     } else {
       if (!debugDevice && glfwGetWindowAttrib(window, GLFW_DECORATED)) {
@@ -112,7 +129,12 @@ public:
   }
 
   void initGl() {
+    glfwWindowHint(GLFW_VISIBLE, 0);
+    renderContext = glfwCreateWindow(100, 100, "shared context", nullptr, window);
+    glfwMakeContextCurrent(renderContext);
+
     GlfwApp::initGl();
+
     ovrFovPort eyeFovPorts[2];
     for_each_eye([&](ovrEyeType eye){
       EyeArgs & eyeArgs = perEyeArgs[eye];
@@ -132,27 +154,20 @@ public:
     memset(&cfg, 0, sizeof(ovrGLConfig));
     cfg.OGL.Header.API = ovrRenderAPI_OpenGL;
     cfg.OGL.Header.RTSize = Rift::toOvr(windowSize);
-    // FIXME Doesn't work as expected
-    //if (0 == (ovrHmd_GetEnabledCaps(hmd) & ovrHmdCap_ExtendDesktop)) {
-    //  cfg.OGL.Header.RTSize.w /= 4;
-    //  cfg.OGL.Header.RTSize.h /= 4;
-    //}
-
     cfg.OGL.Header.Multisample = 1;
-
-    ON_WINDOWS([&]{
-      cfg.OGL.Window = 0;
-    });
-
-    ON_LINUX([&]{
-      cfg.OGL.Disp = glfwGetX11Display();
-      cfg.OGL.Win = glfwGetX11Window(window);
-    });
+    cfg.OGL.ContextData = this;
+    cfg.OGL.ContextSwitch = &HelloRift::contextSwitch;
+    cfg.OGL.SwapBuffers = &HelloRift::swapBuffers;
 
     int distortionCaps =
       ovrDistortionCap_TimeWarp |
       ovrDistortionCap_Chromatic |
-      ovrDistortionCap_Vignette;
+//      ovrDistortionCap_Vignette |
+      0;
+
+    ON_LINUX([&]{
+      distortionCaps |= ovrDistortionCap_LinuxDevFullscreen;
+    });
 
     ovrEyeRenderDesc              eyeRenderDescs[2];
     int configResult = ovrHmd_ConfigureRendering(hmd, &cfg.Config,
@@ -229,7 +244,6 @@ public:
     ovrHmd_GetEyePoses(hmd, frameIndex, eyeOffsets, eyePoses, nullptr);
 
     ovrHmd_BeginFrame(hmd, frameIndex);
-    glEnable(GL_DEPTH_TEST);
     for( int i = 0; i < 2; ++i) {
       ovrEyeType eye = hmd->EyeRenderOrder[i];
       EyeArgs & eyeArgs = perEyeArgs[eye];
