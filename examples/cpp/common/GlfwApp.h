@@ -19,13 +19,13 @@
 
 #pragma once
 #include <GLFW/glfw3.h>
-#include <climits>
-#include <iostream>
-#include <string>
+//#include <climits>
+//#include <iostream>
+//#include <string>
 
 class GlfwApp {
 protected:
-  gl::TimeQueryPtr query;
+  oglplus::Context gl;
   GLFWwindow *  window;
   glm::uvec2    windowSize;
   glm::ivec2    windowPosition;
@@ -60,6 +60,11 @@ public:
 
   static GLFWmonitor * getMonitorAtPosition(const glm::ivec2 & position);
   void createSecondaryScreenWindow(const glm::uvec2 & size);
+
+protected:
+  virtual void viewport(const glm::ivec2 & pos, const glm::uvec2 & size) {
+    gl.Viewport(pos.x, pos.y, size.x, size.y);
+  }
 
 private:
   void onCreate();

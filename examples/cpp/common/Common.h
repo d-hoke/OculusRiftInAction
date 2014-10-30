@@ -30,17 +30,19 @@
 
 #define __STDC_FORMAT_MACROS 1
 
-#include <string>
-#include <cassert>
-#include <iostream>
-#include <sstream>
-#include <cmath>
-#include <list>
 #include <algorithm>
 #include <array>
+#include <cassert>
+#include <cinttypes>
+#include <cmath>
+#include <iostream>
+#include <list>
 #include <map>
+#include <memory>
+#include <sstream>
+#include <string>
 #include <unordered_map>
-#include <stdint.h>
+
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -48,77 +50,65 @@
 #include <glm/gtc/noise.hpp>
 #include <glm/gtc/epsilon.hpp>
 #include <glm/gtx/norm.hpp>
+
+using glm::ivec3;
+using glm::ivec2;
+using glm::uvec2;
+using glm::mat3;
+using glm::mat4;
+using glm::vec2;
+using glm::vec3;
+using glm::vec4;
+using glm::quat;
+
+float aspect(const glm::vec2 & v) {
+  return (float)v.x / (float)v.y;
+}
+
 #include <GL/glew.h>
+
+#pragma warning( disable : 4068 4244 4267 4065)
+#include <oglplus/config/gl.hpp>
+#include <oglplus/all.hpp>
+#include <oglplus/interop/glm.hpp>
+#include <oglplus/bound/texture.hpp>
+#include <oglplus/bound/framebuffer.hpp>
+#include <oglplus/bound/renderbuffer.hpp>
+#include <oglplus/bound/buffer.hpp>
+#pragma warning( default : 4068 4244 4267 4065)
+
+#include <Resources.h>
+
+#include "Platform.h"
+#include "Files.h"
+#include "IO.h"
+
+#include "rendering/Shaders.h"
+#include "rendering/Lights.h"
+#include "rendering/MatrixStack.h"
+#include "rendering/State.h"
+#include "rendering/Mesh.h"
+#include "rendering/Geometry.h"
+
+#include "GlUtils.h"
+#include "GlfwApp.h"
+
 
 #include <OVR_CAPI.h>
 #include <Kernel/OVR_Types.h>
 #include <OVR_CAPI_GL.h>
 
 
-#if defined(OVR_OS_WIN32)
-#define ON_WINDOWS(runnable) runnable()
-#define NOT_ON_WINDOWS(runnable)
-#else
-#define ON_WINDOWS(runnable)
-#define NOT_ON_WINDOWS(runnable) runnable()
-#endif
+#include "OvrUtils.h"
+#include "RiftApp.h"
 
-#if defined(OVR_OS_MAC)
-#define ON_MAC(runnable) runnable()
-#define NOT_ON_MAC(runnable)
-#else
-#define ON_MAC(runnable)
-#define NOT_ON_MAC(runnable) runnable()
-#endif
+//#include <GlDebug.h>
+//#include <GlStacks.h>
+//#include <GlQuery.h>
+//#include <GlShaders.h>
+//#include <GlGeometry.h>
+//#include <GlLighting.h>
 
-#if defined(OVR_OS_LINUX)
-#define ON_LINUX(runnable) runnable()
-#define NOT_ON_LINUX(runnable)
-#else
-#define ON_LINUX(runnable)
-#define NOT_ON_LINUX(runnable) runnable()
-#endif
-
-#include <GlDebug.h>
-#include <GlMethods.h>
-
-#include <GlBuffers.h>
-#include <GlFrameBuffer.h>
-#include <GlStacks.h>
-#include <GlQuery.h>
-#include <GlShaders.h>
-#include <GlGeometry.h>
-#include <GlLighting.h>
-
-#include <Resources.h>
-
-
-template<class T>
-class circular_buffer : public std::list<T>{
-  size_t max;
-public:
-  circular_buffer(size_t max) : max(max) {
-  }
-  void push_back(const T & t) {
-    std::list<T>::push_back(t);
-    while (std::list<T>::size() > max) {
-      std::list<T>::pop_front();
-    }
-  }
-};
-
-
-class Platform {
-public:
-    static void sleepMillis(int millis);
-    static long elapsedMillis();
-    static float elapsedSeconds();
-    static void fail(const char * file, int line, const char * message, ...);
-    static void say(std::ostream & out, const char * message, ...);
-    static std::string format(const char * formatString, ...);
-    static std::string getResourceData(Resource resource);
-    static std::string replaceAll(const std::string & in, const std::string & from, const std::string & to);
-};
 
 #ifndef PI
 #define PI 3.14159265f
@@ -140,17 +130,6 @@ public:
 #define DEGREES_TO_RADIANS (PI / 180.0f)
 #endif
 
-// Windows has a non-standard main function prototype
-#ifdef WIN32
-    #define MAIN_DECL int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
-#else
-    #define MAIN_DECL int main(int argc, char ** argv)
-#endif
-
-#define FAIL(...) Platform::fail(__FILE__, __LINE__, __VA_ARGS__)
-#define SAY(...) Platform::say(std::cout, __VA_ARGS__)
-#define SAY_ERR(...) Platform::say(std::cerr, __VA_ARGS__)
-
 // Combine some macros together to create a single macro
 // to run an example app
 #define RUN_APP(AppClass) \
@@ -165,16 +144,16 @@ public:
         return -1; \
     }
 
-#include "Config.h"
-
-#include "Font.h"
-#include "Files.h"
-
-#include "GlMesh.h"
-#include "GlUtils.h"
-#include "GlfwApp.h"
-
-#include "Interaction.h"
-
-#include "Rift.h"
-#include "OpenCV.h"
+//#include "Config.h"
+//
+//#include "Font.h"
+//#include "Files.h"
+//
+//#include "GlMesh.h"
+//#include "GlUtils.h"
+//#include "GlfwApp.h"
+//
+//#include "Interaction.h"
+//
+//#include "OvrUtils.h"
+//#include "OpenCV.h"

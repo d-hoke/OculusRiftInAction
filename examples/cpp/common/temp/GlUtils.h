@@ -22,16 +22,6 @@
 
 class GlUtils {
 public:
-  static void checkError() {
-    GLenum error = glGetError();
-    if (error != 0) {
-      FAIL("GL error set %d", error);
-    }
-  }
-
-  static void clearError() {
-    glGetError();
-  }
   //static void drawColorCube(bool lit = false);
   //static void drawQuad(
   //    const glm::vec2 & min = glm::vec2(-1),

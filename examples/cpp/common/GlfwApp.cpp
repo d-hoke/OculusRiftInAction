@@ -17,13 +17,12 @@
 
  ************************************************************************************/
 #include "Common.h"
-#include "GlfwApp.h"
-#include <regex>
+
 #ifdef HAVE_OPENCV
 #include <opencv2/opencv.hpp>
 #endif
 
-#ifdef __APPLE__
+#ifdef OS_MAC
 #include <CoreGraphics/CGDirectDisplay.h>
 #include <CoreGraphics/CGDisplayConfiguration.h>
 #endif
@@ -95,16 +94,16 @@ GlfwApp::GlfwApp()
   glfwSetErrorCallback(glfwErrorCallback);
 }
 
-void compileAllShaders(const Resource * shaders,
-    GLenum shaderType) {
-  int i = 0;
-  while (shaders[i] != Resource::NO_RESOURCE) {
-    SAY("Compiling %s", Resources::getResourcePath(shaders[i]).c_str());
-    std::string shaderSource = Platform::getResourceData(shaders[i]);
-    gl::Shader s(shaderType, shaderSource);
-    ++i;
-  }
-}
+//void compileAllShaders(const Resource * shaders,
+//    GLenum shaderType) {
+//  int i = 0;
+//  while (shaders[i] != Resource::NO_RESOURCE) {
+//    SAY("Compiling %s", Resources::getResourcePath(shaders[i]).c_str());
+//    std::string shaderSource = Platform::getResourceData(shaders[i]);
+//    gl::Shader s(shaderType, shaderSource);
+//    ++i;
+//  }
+//}
 
 void APIENTRY debugCallback(
     GLenum source,
@@ -155,7 +154,7 @@ void APIENTRY debugCallback(
 }
 
 void GlfwApp::onCreate() {
-  windowAspect = glm::aspect(windowSize);
+  windowAspect = aspect(windowSize);
   windowAspectInverse = 1.0f / windowAspect;
   glfwSetWindowUserPointer(window, this);
   glfwSetKeyCallback(window, glfwKeyCallback);
@@ -163,15 +162,15 @@ void GlfwApp::onCreate() {
   glfwMakeContextCurrent(window);
   glfwSwapInterval(1);
 
-// Initialize the OpenGL bindings
-// For some reason we have to set this experminetal flag to properly
-// init GLEW if we use a core context.
+  // Initialize the OpenGL bindings
+  // For some reason we have to set this experminetal flag to properly
+  // init GLEW if we use a core context.
   glewExperimental = GL_TRUE;
   if (0 != glewInit()) {
     FAIL("Failed to initialize GLEW");
   }
   glGetError();
-#ifdef RIFT_DEBUG
+#ifdef DEBUG_BUILD
   GL_CHECK_ERROR;
   glEnable (GL_DEBUG_OUTPUT_SYNCHRONOUS);
   GL_CHECK_ERROR;
@@ -191,8 +190,8 @@ void GlfwApp::onCreate() {
     GL_CHECK_ERROR;
   }
 #endif
-  GL_CHECK_ERROR;
 /*
+  GL_CHECK_ERROR;
   if (glNamedStringARB) {
     for (int i = 0;
         Resources::LIB_SHADERS[i] != Resource::NO_SHADER; ++i) {
@@ -208,9 +207,9 @@ void GlfwApp::onCreate() {
       GL_CHECK_ERROR;
     }
   }
-*/
   compileAllShaders(Resources::VERTEX_SHADERS, GL_VERTEX_SHADER);
   compileAllShaders(Resources::FRAGMENT_SHADERS, GL_FRAGMENT_SHADER);
+  */
 }
 
 void GlfwApp::preCreate() {
@@ -223,7 +222,7 @@ void GlfwApp::preCreate() {
   ON_MAC([]{
       glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   });
-#ifdef RIFT_DEBUG
+#ifdef DEBUG_BUILD
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 #endif
 }
@@ -256,8 +255,8 @@ void GlfwApp::initGl() {
   glCullFace(GL_BACK);
   glDisable(GL_DITHER);
   glEnable(GL_DEPTH_TEST);
-  query = gl::TimeQueryPtr(new gl::TimeQuery());
-  GL_CHECK_ERROR;
+//  query = gl::TimeQueryPtr(new gl::TimeQuery());
+  GlUtils::checkError();
 }
 
 void GlfwApp::finishFrame() {
@@ -274,19 +273,19 @@ GlfwApp::~GlfwApp() {
   glfwTerminate();
 }
 
-void GlfwApp::renderStringAt(const std::string & str, const glm::vec2 & pos) {
-  gl::MatrixStack & mv = gl::Stacks::modelview();
-  gl::MatrixStack & pr = gl::Stacks::projection();
-  mv.push().identity();
-  pr.push().top() = glm::ortho(
-    -1.0f, 1.0f,
-    -windowAspectInverse, windowAspectInverse,
-    -100.0f, 100.0f);
-  glm::vec2 cursor(pos.x, windowAspectInverse * pos.y);
-  GlUtils::renderString(str, cursor, 18.0f);
-  pr.pop();
-  mv.pop();
-}
+//void GlfwApp::renderStringAt(const std::string & str, const glm::vec2 & pos) {
+//  gl::MatrixStack & mv = gl::Stacks::modelview();
+//  gl::MatrixStack & pr = gl::Stacks::projection();
+//  mv.push().identity();
+//  pr.push().top() = glm::ortho(
+//    -1.0f, 1.0f,
+//    -windowAspectInverse, windowAspectInverse,
+//    -100.0f, 100.0f);
+//  glm::vec2 cursor(pos.x, windowAspectInverse * pos.y);
+//  GlUtils::renderString(str, cursor, 18.0f);
+//  pr.pop();
+//  mv.pop();
+//}
 
 void GlfwApp::screenshot() {
 
@@ -348,20 +347,16 @@ void GlfwApp::onKey(int key, int scancode, int action, int mods) {
     glfwSetWindowShouldClose(window, 1);
     return;
 
-#ifdef HAVE_OPENCV
-    case GLFW_KEY_S:
+  case GLFW_KEY_S:
     if (mods & GLFW_MOD_SHIFT) {
       screenshot();
     }
     return;
-#endif
   }
 }
 
 void GlfwApp::onMouseButton(int button, int action, int mods) {
-
 }
-
 
 void GlfwApp::draw() {
 }

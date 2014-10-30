@@ -1,4 +1,5 @@
 #include "Common.h"
+#include "RiftApp.h"
 #include <OVR_CAPI_GL.h>
 
 RiftApp::RiftApp(bool fullscreen) :  RiftGlfwApp(fullscreen) {
@@ -35,8 +36,6 @@ void RiftApp::finishFrame() {
 
 void RiftApp::initGl() {
   RiftGlfwApp::initGl();
-  query = gl::TimeQueryPtr(new gl::TimeQuery());
-  GL_CHECK_ERROR;
 
   int samples;
   glGetIntegerv(GL_SAMPLES, &samples);
@@ -44,7 +43,7 @@ void RiftApp::initGl() {
   ovrGLConfig cfg;
   memset(&cfg, 0, sizeof(cfg));
   cfg.OGL.Header.API = ovrRenderAPI_OpenGL;
-  cfg.OGL.Header.RTSize = Rift::toOvr(windowSize);
+  cfg.OGL.Header.RTSize = ovr::toOvr(windowSize);
   cfg.OGL.Header.Multisample = 1;
 
   int distortionCaps = 0 
@@ -63,12 +62,9 @@ void RiftApp::initGl() {
   for_each_eye([&](ovrEyeType eye){
     const ovrEyeRenderDesc & erd = eyeRenderDescs[eye];
     ovrMatrix4f ovrPerspectiveProjection = ovrMatrix4f_Projection(erd.Fov, 0.01f, 100000.0f, true);
-    projections[eye] = Rift::fromOvr(ovrPerspectiveProjection);
-    glm::vec2 orthoScale = glm::vec2(1.0f) / Rift::fromOvr(erd.PixelsPerTanAngleAtCenter);
+    projections[eye] = ovr::fromOvr(ovrPerspectiveProjection);
+    glm::vec2 orthoScale = glm::vec2(1.0f) / ovr::fromOvr(erd.PixelsPerTanAngleAtCenter);
     eyeOffsets[eye] = erd.HmdToEyeViewOffset;
-    orthoProjections[eye] = Rift::fromOvr(
-        ovrMatrix4f_OrthoSubProjection(
-          ovrPerspectiveProjection, Rift::toOvr(orthoScale), orthoDistance, erd.HmdToEyeViewOffset.x));
   });
 
   ///////////////////////////////////////////////////////////////////////////
@@ -77,17 +73,15 @@ void RiftApp::initGl() {
   glEnable(GL_BLEND);
   glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
   glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-  GL_CHECK_ERROR;
 
   // Allocate the frameBuffer that will hold the scene, and then be
   // re-rendered to the screen with distortion
-  glm::uvec2 frameBufferSize = Rift::fromOvr(eyeTextures[0].Header.TextureSize);
-  for_each_eye([&](ovrEyeType eye) {
-    frameBuffers[eye].init(frameBufferSize);
-    ((ovrGLTexture&)(eyeTextures[eye])).OGL.TexId = 
-      frameBuffers[eye].color->texture;
-  });
-  GL_CHECK_ERROR;
+  glm::uvec2 frameBufferSize = ovr::fromOvr(eyeTextures[0].Header.TextureSize);
+  //for_each_eye([&](ovrEyeType eye) {
+  //  frameBuffers[eye].init(frameBufferSize);
+  //  ((ovrGLTexture&)(eyeTextures[eye])).OGL.TexId = 
+  //    frameBuffers[eye].color->texture;
+  //});
 }
 
 void RiftApp::onKey(int key, int scancode, int action, int mods) {
@@ -97,22 +91,22 @@ void RiftApp::onKey(int key, int scancode, int action, int mods) {
     return;
   }
 
-  // Allow the camera controller to intercept the input
-  if (CameraControl::instance().onKey(key, scancode, action, mods)) {
-    return;
-  }
+  //// Allow the camera controller to intercept the input
+  //if (CameraControl::instance().onKey(key, scancode, action, mods)) {
+  //  return;
+  //}
   RiftGlfwApp::onKey(key, scancode, action, mods);
 }
 
 
 void RiftApp::update() {
   RiftGlfwApp::update();
-  CameraControl::instance().applyInteraction(player);
+//  CameraControl::instance().applyInteraction(player);
 //  gl::Stacks::modelview().top() = glm::lookAt(glm::vec3(0, 0, 0.4f), glm::vec3(0), glm::vec3(0, 1, 0));
 }
 
 void RiftApp::applyEyePoseAndOffset(const glm::mat4 & eyePose, const glm::vec3 & eyeOffset) {
-  gl::MatrixStack & mv = gl::Stacks::modelview();
+  MatrixStack & mv = Stacks::modelview();
   mv.preMultiply(glm::inverse(eyePose));
   // Apply the per-eye offset
   mv.preMultiply(glm::translate(glm::mat4(), eyeOffset));
@@ -121,42 +115,40 @@ void RiftApp::applyEyePoseAndOffset(const glm::mat4 & eyePose, const glm::vec3 &
 void RiftApp::draw() {
   static int frameIndex = 0;
   ovrHmd_BeginFrame(hmd, frameIndex++);
-  gl::MatrixStack & mv = gl::Stacks::modelview();
-  gl::MatrixStack & pr = gl::Stacks::projection();
+  MatrixStack & mv = Stacks::modelview();
+  MatrixStack & pr = Stacks::projection();
   
   ovrHmd_GetEyePoses(hmd, frameIndex, eyeOffsets, eyePoses, nullptr);
   for (int i = 0; i < 2; ++i) {
     ovrEyeType eye = currentEye = hmd->EyeRenderOrder[i];
-    gl::Stacks::with_push(pr, mv, [&]{
+    Stacks::withPush(pr, mv, [&]{
       const ovrEyeRenderDesc & erd = eyeRenderDescs[eye];
       // Set up the per-eye projection matrix
       {
         ovrMatrix4f eyeProjection = ovrMatrix4f_Projection(erd.Fov, 0.01f, 100000.0f, true);
-        glm::mat4 ovrProj = Rift::fromOvr(eyeProjection);
+        glm::mat4 ovrProj = ovr::fromOvr(eyeProjection);
         pr.top() = ovrProj;
       }
 
       // Set up the per-eye modelview matrix
       {
         // Apply the head pose
-        glm::mat4 eyePose = Rift::fromOvr(eyePoses[eye]);
+        glm::mat4 eyePose = ovr::fromOvr(eyePoses[eye]);
         applyEyePoseAndOffset(eyePose, glm::vec3(0));
         // Cache the headPose so subsequent scene code can read it
         headPose = eyePose;
       }
 
-      // Render the scene to an offscreen buffer
-      frameBuffers[eye].activate();
-      //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-      //glEnable(GL_DEPTH_TEST);
-      renderScene();
-      frameBuffers[eye].deactivate();
+      //// Render the scene to an offscreen buffer
+      //frameBuffers[eye].activate();
+      ////glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      ////glEnable(GL_DEPTH_TEST);
+      //renderScene();
+      //frameBuffers[eye].deactivate();
 
       //ovrHmd_EndEyeRender(hmd, eye, renderPose, &(eyeTextures[eye].Texture));
     });
-    GL_CHECK_ERROR;
   }
-  query->begin();
   postDraw();
 #if 1
   ovrHmd_EndFrame(hmd, eyePoses, eyeTextures);
@@ -169,31 +161,28 @@ void RiftApp::draw() {
   gl::Stacks::with_push(pr, mv, [&]{
     pr.identity(); mv.identity();
     frameBuffers[0].color->bind();
-    glViewport(0, 0, 640, 800);
+    viewport(ovrEye_Left);
     geometry->draw();
     frameBuffers[1].color->bind();
-    glViewport(640, 0, 640, 800);
+    viewport(ovrEye_Right);
     geometry->draw();
   });
   gl::Program::clear();
   gl::VertexArray::unbind();
   glfwSwapBuffers(window);
 #endif
-  query->end();
-  int result = query->getResult();
-  GL_CHECK_ERROR;
 }
 
-void RiftApp::renderStringAt(const std::string & str, float x, float y, float size) {
-  gl::MatrixStack & mv = gl::Stacks::modelview();
-  gl::MatrixStack & pr = gl::Stacks::projection();
-  gl::Stacks::with_push(mv, pr, [&]{
-    mv.identity();
-    pr.top() = 1.0f * glm::ortho(
-      -1.0f, 1.0f,
-      -windowAspectInverse * 2.0f, windowAspectInverse * 2.0f,
-      -100.0f, 100.0f);
-    glm::vec2 cursor(x, windowAspectInverse * y);
-    GlUtils::renderString(str, cursor, size);
-  });
-}
+//void RiftApp::renderStringAt(const std::string & str, float x, float y, float size) {
+//  gl::MatrixStack & mv = gl::Stacks::modelview();
+//  gl::MatrixStack & pr = gl::Stacks::projection();
+//  gl::Stacks::with_push(mv, pr, [&]{
+//    mv.identity();
+//    pr.top() = 1.0f * glm::ortho(
+//      -1.0f, 1.0f,
+//      -windowAspectInverse * 2.0f, windowAspectInverse * 2.0f,
+//      -100.0f, 100.0f);
+//    glm::vec2 cursor(x, windowAspectInverse * y);
+//    GlUtils::renderString(str, cursor, size);
+//  });
+//}

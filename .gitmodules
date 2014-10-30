@@ -28,3 +28,6 @@
 [submodule "cmake"]
 	path = cmake
 	url = https://github.com/jherico/cmake.git
+[submodule "libraries/oglplus"]
+	path = libraries/oglplus
+	url = git@github.com:jherico/oglplus.git

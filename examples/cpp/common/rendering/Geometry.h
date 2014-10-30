@@ -16,30 +16,40 @@
  limitations under the License.
 
  ************************************************************************************/
-
 #pragma once
 
-struct libusb_device_handle;
+class Geometry {
+public:
+  typedef std::vector<vec4> VVec4;
 
-namespace hid {
+  static const int VERTEX_ATTRIBUTE_SIZE = 4;
+  static const int BYTES_PER_ATTRIBUTE = (sizeof(float) * VERTEX_ATTRIBUTE_SIZE);
 
-  #pragma pack(push, 1)
-  struct FeatureReport {
-    const size_t SIZE;
-    const uint8_t REPORT_ID;
-    uint8_t reportId;
-    uint16_t commandId;
+  oglplus::Buffer vertexBuffer;
+  oglplus::Buffer indexBuffer;
+  oglplus::VertexArray vao;
 
-    FeatureReport(uint8_t reportId, size_t size) :
-        SIZE(size), REPORT_ID(reportId) {}
+  GLsizei elements;
+  GLenum  elementType{ GL_TRIANGLES };
 
-    uint8_t * buffer() {
-      return &reportId;
-    }
+  Geometry() {
+  }
 
-    void read(libusb_device_handle * handle);
-    void write(libusb_device_handle * handle);
-  };
-  #pragma pack(pop)
+  template <typename Function>
+  Geometry(Function func, GLsizei count, GLenum elementType = GL_TRIANGLES) : elements(count), elementType(elementType) {
+    func(vertexBuffer, indexBuffer, vao);
+  }
+  void bind() {
+    vao.Bind();
+  }
 
-}
+  void draw() {
+    glDrawElements(elementType, elements, GL_UNSIGNED_INT, (void*)0);
+  }
+
+  void drawInstanced(int count) {
+    glDrawElementsInstanced(elementType, elements, GL_UNSIGNED_INT, (void*)0, count);
+  }
+
+  void loadMesh(const Mesh & mesh);
+};

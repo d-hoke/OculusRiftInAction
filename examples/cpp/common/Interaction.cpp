@@ -1,4 +1,5 @@
 #include "Common.h"
+#include "Interaction.h"
 
 #ifdef HAVE_SIXENSE
 #include <sixense.h>

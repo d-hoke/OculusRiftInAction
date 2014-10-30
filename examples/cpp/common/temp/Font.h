@@ -27,8 +27,6 @@
 #include <string>
 #include <cstdint>
 #include "Types.h"
-#include "GlTexture.h"
-#include "GlGeometry.h"
 
 namespace Text {
 
@@ -154,8 +152,8 @@ public:
   float mDescent;
   float mSpaceWidth;
 
-  gl::Texture2dPtr mTexture;
-  gl::GeometryPtr mGeometry;
+  //gl::Texture2dPtr mTexture;
+  //gl::GeometryPtr mGeometry;
   glm::vec2 mTextureSize;
 
   MetricsData mMetrics;

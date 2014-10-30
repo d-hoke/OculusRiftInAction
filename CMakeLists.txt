@@ -132,14 +132,26 @@ include_directories(${CMAKE_SOURCE_DIR}/libraries/glew/include)
 include_directories(${CMAKE_SOURCE_DIR}/libraries/glfw/include)
 include_directories(${CMAKE_SOURCE_DIR}/libraries/OpenCTM)
 
+set(OGLPLUS_CONFIG_SET_LOW_PROFILE 1)
+set(OGLPLUS_LOW_PROFILE 0)
+set(OGLPLUS_USE_GLCOREARB_H 1) 
+set(OGLPLUS_USE_GL3_H 0)
+set(OGLPLUS_USE_GLEW 0)
+set(OGLPLUS_USE_GL3W 0)
+set(OGLPLUS_USE_BOOST_CONFIG 0)
+
+add_subdirectory(libraries/oglplus)
+include_directories(${CMAKE_SOURCE_DIR}/libraries/oglplus/include)
+include_directories(${CMAKE_SOURCE_DIR}/libraries/oglplus/implement)
+include_directories(${CMAKE_BINARY_DIR}/libraries/oglplus/include)
 
 ###############################################################################
 #
 # Common GL code, using only headers.  
 #
-add_subdirectory(libraries/gl)
-set_target_properties(gl PROPERTIES FOLDER "Examples/Shared")
-include_directories(${CMAKE_SOURCE_DIR}/libraries/gl)
+#add_subdirectory(libraries/gl)
+#set_target_properties(gl PROPERTIES FOLDER "Examples/Shared")
+#include_directories(${CMAKE_SOURCE_DIR}/libraries/gl)
 
 
 ###############################################################################
