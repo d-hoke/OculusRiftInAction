@@ -60,7 +60,7 @@ public:
   RiftGlfwApp(bool fullscreen = false) : fullscreen(fullscreen)
   {
     // Attempt to find the Rift monitor.
-    hmdMonitor = GlfwApp::getMonitorAtPosition(hmdDesktopPosition);
+    hmdMonitor = glfw::getMonitorAtPosition(hmdDesktopPosition);
     if (!hmdMonitor) {
       SAY_ERR("No Rift display found.  Looking for alternate display");
       fakeRiftMonitor = true;
@@ -86,7 +86,7 @@ public:
     }
 
     const GLFWvidmode * videoMode = glfwGetVideoMode(hmdMonitor);
-    if (!fakeRiftMonitor || fullscreen) {
+    if (fakeRiftMonitor || fullscreen) {
       // if we've got a real rift monitor, OR we're doing fullscreen with
       // a fake Rift, use the resolution of the monitor
       windowSize = glm::uvec2(videoMode->width, videoMode->height);
@@ -113,7 +113,6 @@ public:
   }
 
   virtual void createRenderingTarget() {
-
     if (fullscreen) {
       // Fullscreen apps should use the native resolution of the Rift
       this->createFullscreenWindow(hmdNativeResolution, hmdMonitor);
@@ -142,7 +141,7 @@ public:
     ovrHmd_SetEnabledCaps(hmd, getEnabledCaps() | caps);
   }
 
-  void toggleCap(ovrHmdCaps cap) {
+  void toggleCaps(ovrHmdCaps cap) {
     if (cap & getEnabledCaps()) {
       disableCaps(cap);
     } else {
@@ -151,7 +150,7 @@ public:
   }
 
   void disableCaps(int caps) {
-    ovrHmd_SetEnabledCaps(hmd, getEnabledCaps() &  ~caps);
+    ovrHmd_SetEnabledCaps(hmd, getEnabledCaps() & ~caps);
   }
 };
 
@@ -160,7 +159,6 @@ public:
 
 protected:
   glm::mat4 player;
-  glm::mat4 headPose;
   ovrTexture eyeTextures[2];
   ovrVector3f eyeOffsets[2];
 
@@ -179,7 +177,6 @@ protected:
   virtual void postDraw() {};
   virtual void update();
   virtual void renderScene() = 0;
-
 
   virtual void applyEyePoseAndOffset(const glm::mat4 & eyePose, const glm::vec3 & eyeOffset);
 

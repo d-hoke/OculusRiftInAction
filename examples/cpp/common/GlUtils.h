@@ -32,6 +32,7 @@ public:
   static void clearError() {
     glGetError();
   }
+
   //static void drawColorCube(bool lit = false);
   //static void drawQuad(
   //    const glm::vec2 & min = glm::vec2(-1),
@@ -196,6 +197,55 @@ public:
   static const glm::vec3 ORIGIN;
   static const glm::vec3 ONE;
   static const glm::vec3 UP;
+
+  static void APIENTRY debugCallback(
+    GLenum source,
+    GLenum type,
+    GLuint id,
+    GLenum severity,
+    GLsizei length,
+    const GLchar * message,
+    void * userParam) {
+    const char * typeStr = "?";
+    switch (type) {
+    case GL_DEBUG_TYPE_ERROR:
+      typeStr = "ERROR";
+      break;
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+      typeStr = "DEPRECATED_BEHAVIOR";
+      break;
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+      typeStr = "UNDEFINED_BEHAVIOR";
+      break;
+    case GL_DEBUG_TYPE_PORTABILITY:
+      typeStr = "PORTABILITY";
+      break;
+    case GL_DEBUG_TYPE_PERFORMANCE:
+      typeStr = "PERFORMANCE";
+      break;
+    case GL_DEBUG_TYPE_OTHER:
+      typeStr = "OTHER";
+      break;
+    }
+
+    const char * severityStr = "?";
+    switch (severity) {
+    case GL_DEBUG_SEVERITY_LOW:
+      severityStr = "LOW";
+      break;
+    case GL_DEBUG_SEVERITY_MEDIUM:
+      severityStr = "MEDIUM";
+      break;
+    case GL_DEBUG_SEVERITY_HIGH:
+      severityStr = "HIGH";
+      break;
+    }
+    SAY("--- OpenGL Callback Message ---");
+    SAY("type: %s\nseverity: %-8s\nid: %d\nmsg: %s", typeStr, severityStr, id,
+      message);
+    SAY("--- OpenGL Callback Message ---");
+  }
+
 };
 
 struct Colors {

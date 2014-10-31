@@ -1,7 +1,9 @@
 #include "Common.h"
 
 #ifdef OS_WIN
+#pragma warning (disable : 4996)
 #include <Windows.h>
+#define snprintf _snprintf
 #else
 #include <sys/time.h>
 #include <unistd.h>

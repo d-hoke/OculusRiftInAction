@@ -61,7 +61,7 @@ using glm::vec3;
 using glm::vec4;
 using glm::quat;
 
-float aspect(const glm::vec2 & v) {
+inline float aspect(const glm::vec2 & v) {
   return (float)v.x / (float)v.y;
 }
 
