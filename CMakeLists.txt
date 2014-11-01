@@ -11,25 +11,10 @@ include(cmake/defaults.cmake)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-option(RIFT_BUILD_SCRATCH_EXAMPLES OFF)
 string( TOLOWER "${CMAKE_BUILD_TYPE}" BUILD_TYPE_LOWER )
 if(BUILD_TYPE_LOWER STREQUAL "debug")
    set(RIFT_DEBUG 1)
 endif()
-
-if(RIFT_DEBUG)
-   message("Debug build, resources will be loaded from disk")
-   set(OVR_DEBUG_BUILD 1)
-else() 
-   message("Release build, resources will be loaded from executable/bundle")
-endif()
-
-
-if(WIN32)
-elseif(APPLE)
-else()
-endif()
-
 
 ###############################################################################
 #
@@ -42,8 +27,6 @@ if (NOT(EXISTS ${OVR_DIR} AND IS_DIRECTORY ${OVR_DIR}))
     message(FATAL_ERROR "Submodules seem to be missing.  Please make sure you check out with 'git clone --recursive' OR run 'git submodule init' and 'git submodule update' after checkout") 
 endif()
 
-# Add debug output from the Oculus SDK
-
 # The primary SDK artifact, a static library for Oculus access 
 set(BUILD_SHARED_LIBS ON)
 add_subdirectory(libraries/OculusSDK/LibOVR)
@@ -51,17 +34,17 @@ set(BUILD_SHARED_LIBS OFF)
 set_target_properties(OculusVR PROPERTIES FOLDER "3rdparty")
 list(APPEND EXAMPLE_LIBS OculusVR)
 
-add_definitions(-DGLEW_STATIC)
-add_subdirectory(libraries/glew)
-set_target_properties(glew PROPERTIES FOLDER "3rdparty")
-list(APPEND EXAMPLE_LIBS glew)
 
 ###############################################################################
 #
 # Non-Oculus third party dependencies 
 #
 
-# Cross platform access to shader functionality
+# GLEW - Cross platform access to OpenGL 3+ functionality
+add_definitions(-DGLEW_STATIC)
+add_subdirectory(libraries/glew)
+set_target_properties(glew PROPERTIES FOLDER "3rdparty")
+list(APPEND EXAMPLE_LIBS glew)
 
 # GLFW - Cross platform OpenGL window creation and input handling
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "Build the GLFW example programs")
@@ -72,87 +55,43 @@ add_subdirectory(libraries/glfw)
 set_target_properties(glfw PROPERTIES FOLDER "3rdparty")
 list(APPEND EXAMPLE_LIBS glfw ${GLFW_LIBRARIES})
 
-# OpenCTM - a 3D mesh compression
-add_subdirectory(libraries/OpenCTM)
-set_target_properties(OpenCTM PROPERTIES FOLDER "3rdparty")
-list(APPEND EXAMPLE_LIBS OpenCTM)
-
-# Computer vision library with advanced image loading and manipulation 
-# functionality.  
-# OpenCV is OPTIONAL.  
-find_package( OpenCV QUIET)
-if (OpenCV_FOUND) 
-    include_directories(${OpenCV_INCLUDE_DIRS})
-    list(APPEND EXAMPLE_LIBS ${OpenCV_LIBS})
-    set(HAVE_OPENCV 1)
-else()
-    # Without OpenCV, we have to fall back on libpng
-    # which requires zlib.  For windows and apple we
-    # build the library.  For Unix systems we locate 
-    # the native package
-    if((WIN32 OR APPLE))
-        # zlib
-        add_subdirectory(libraries/zlib)
-        set(ZLIB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/libraries/zlib)
-        include_directories(${CMAKE_BINARY_DIR}/libraries/zlib)
-        include_directories(${CMAKE_SOURCE_DIR}/libraries/zlib)
-        list(APPEND EXAMPLE_LIBS zlib)
-    
-        # png
-        set(PNG_STATIC ON CACHE BOOL "Build PNG static library")
-        set(PNG_TESTS OFF CACHE BOOL "Build PNG tests")
-        set(PNG_SHARED OFF CACHE BOOL "Build PNG shared library")
-        add_subdirectory(libraries/libpng)
-        list(APPEND EXAMPLE_LIBS png)
-        set_target_properties(zlib PROPERTIES FOLDER "3rdparty")
-        set_target_properties(png PROPERTIES FOLDER "3rdparty")
-    else()
-        find_package(PNG REQUIRED)
-        list(APPEND EXAMPLE_LIBS ${PNG_LIBRARIES})
-    endif()
-endif()
-
 find_package(Threads)
 list(APPEND EXAMPLE_LIBS ${CMAKE_THREAD_LIBS_INIT} )
 
-
-
-if (OpenCV_FOUND) 
-    include_directories(${OpenCV_INCLUDE_DIRS})
-else()
-    if((WIN32 OR APPLE))
-        include_directories(${CMAKE_SOURCE_DIR}/libraries/libpng)
-        include_directories(${CMAKE_BINARY_DIR}/libraries/libpng)
-    else()
-        include_directories(${PNG_INCLUDE_DIR})
-    endif()
-endif()
-include_directories(${CMAKE_SOURCE_DIR}/libraries/OculusSDK/LibOVR/Src)
 include_directories(${CMAKE_SOURCE_DIR}/libraries/glew/include)
 include_directories(${CMAKE_SOURCE_DIR}/libraries/glfw/include)
-include_directories(${CMAKE_SOURCE_DIR}/libraries/OpenCTM)
+include_directories(${CMAKE_SOURCE_DIR}/libraries/glm)
 
+# OpenGL encapsulation
 set(OGLPLUS_CONFIG_SET_LOW_PROFILE 1)
 set(OGLPLUS_LOW_PROFILE 0)
-set(OGLPLUS_USE_GLCOREARB_H 1) 
+set(OGLPLUS_USE_GLCOREARB_H 0) 
 set(OGLPLUS_USE_GL3_H 0)
-set(OGLPLUS_USE_GLEW 0)
+set(OGLPLUS_USE_GLEW 1)
 set(OGLPLUS_USE_GL3W 0)
 set(OGLPLUS_USE_BOOST_CONFIG 0)
 
-add_subdirectory(libraries/oglplus)
+set(SAVE_PROJECT_SOURCE_DIR ${PROJECT_SOURCE_DIR})
+set(PROJECT_SOURCE_DIR ${PROJECT_SOURCE_DIR}/libraries/oglplus)
+#message(FATAL_ERROR ${PROJECT_SOURCE_DIR})
+# compiler options
+include(libraries/oglplus/config/Compiler.cmake)
+# c++ compiler options / supported feature detection
+include(libraries/oglplus/config/CPPFeature.cmake)
+set(PROJECT_SOURCE_DIR ${SAVE_PROJECT_SOURCE_DIR})
+
+configure_file(
+	${PROJECT_SOURCE_DIR}/libraries/oglplus/config/oglplus/config/site.hpp.in
+	${PROJECT_BINARY_DIR}/libraries/oglplus/include/oglplus/config/site.hpp
+)
+
+#add_subdirectory(libraries/oglplus)
+
+
+include_directories(${CMAKE_SOURCE_DIR}/libraries/OculusSDK/LibOVR/Src)
 include_directories(${CMAKE_SOURCE_DIR}/libraries/oglplus/include)
 include_directories(${CMAKE_SOURCE_DIR}/libraries/oglplus/implement)
 include_directories(${CMAKE_BINARY_DIR}/libraries/oglplus/include)
-
-###############################################################################
-#
-# Common GL code, using only headers.  
-#
-#add_subdirectory(libraries/gl)
-#set_target_properties(gl PROPERTIES FOLDER "Examples/Shared")
-#include_directories(${CMAKE_SOURCE_DIR}/libraries/gl)
-
 
 ###############################################################################
 #
@@ -163,26 +102,9 @@ include_directories(${CMAKE_SOURCE_DIR}/libraries/glm)
 
 ###############################################################################
 #
-# Non-C++ resources that are shared by the examples
-# (shaders, meshes, images, fonts, etc)
-#
-# On Windows these will be pulled from a common resource DLL.  
-#
-# On OSX, they will be embedded in each application bundle, owing to CMakes
-# lack of support for shared frameworks
-# 
-# On Linux or if you enable the debug build, they will be pulled from the
-# source location at runtime.  
-#
-add_subdirectory(resources)
-set_target_properties(ExampleResources PROPERTIES FOLDER "Examples/Shared")
-include_directories(resources/cpp)
-include_directories(${CMAKE_BINARY_DIR}/resources)
-list(APPEND EXAMPLE_LIBS ExampleResources)
-
-###############################################################################
-#
 # The examples themselves
 #
+foreach(LIB ${EXAMPLE_LIBS}) 
+	message(${LIB})
+endforeach()
 add_subdirectory(examples/cpp)
-

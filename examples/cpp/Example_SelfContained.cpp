@@ -171,17 +171,31 @@ static const GLfloat CUBE_NORMALS[6][3] = {
     { 0.0f, 0.0f, 1.0f }
 };
 
+
+namespace Attribute {
+enum {
+  Position = 0,
+  TexCoord0 = 1,
+  Normal = 2,
+  Color = 3,
+  TexCoord1 = 4,
+  InstanceTransform = 5,
+};
+}
+
 static const char * VERTEX_SHADER =
 "#version 330\n"
 "uniform mat4 ProjectionMatrix, CameraMatrix;"
-"in vec4 Position;"
-"in vec3 Normal;"
+"layout(location = 0) in vec4 Position;"
+"layout(location = 2) in vec3 Normal;"
+"layout(location = 5) in mat4 InstanceTransform;"
 "out vec3 vertNormal;"
 "void main(void)"
 "{"
+" mat4 ViewXfm = CameraMatrix * InstanceTransform;"
 " vertNormal = Normal;"
 " gl_Position = ProjectionMatrix *"
-" CameraMatrix *"
+" ViewXfm *"
 " Position;"
 "}";
 
@@ -205,7 +219,11 @@ struct ColorCubeScene {
 
   // VBOs for the cube's vertices and normals
   oglplus::Buffer verts;
+  oglplus::Buffer instances;
   oglplus::Buffer normals;
+
+  const unsigned int GRID_SIZE{21};
+  const unsigned int GRID_DIMENSTIONS{GRID_SIZE * GRID_SIZE * GRID_SIZE};
 
 public:
   ColorCubeScene() {
@@ -228,10 +246,10 @@ public:
       Buffer::Target::Array,
       CUBE_VERTEX_COUNT * 3,
       CUBE_VERTICES
-      );
+    );
 
     // setup the vertex attribs array for the vertices
-    VertexArrayAttrib vert_attr(prog, "Position");
+    VertexArrayAttrib vert_attr(prog, Attribute::Position);
     vert_attr.Setup<Vec3f>();
     vert_attr.Enable();
     GLfloat cube_normals[CUBE_VERTEX_COUNT * 3];
@@ -246,11 +264,40 @@ public:
       Buffer::Target::Array,
       CUBE_VERTEX_COUNT * 3,
       cube_normals
-      );
+    );
     // setup the vertex attribs array for the vertices
-    VertexArrayAttrib normal_attr(prog, "Normal");
+    VertexArrayAttrib normal_attr(prog, Attribute::Normal);
     normal_attr.Setup<Vec3f>();
     normal_attr.Enable();
+
+
+    std::vector<mat4> instance_positions;
+    instance_positions.resize(GRID_DIMENSTIONS, mat4(1.0f));
+    for (int z = 0; z < GRID_SIZE; ++z) {
+      for (int y = 0; y < GRID_SIZE; ++y) {
+        for (int x = 0; x < GRID_SIZE; ++x) {
+          int xpos = (x - (GRID_SIZE / 2)) * 2;
+          int ypos = (y - (GRID_SIZE / 2)) * 2;
+          int zpos = -z * 2;
+          int offset = (z * GRID_SIZE * GRID_SIZE) + (y * GRID_SIZE) + x;
+          instance_positions[offset] = glm::translate(glm::mat4(1.0f), vec3(xpos, ypos, zpos));
+        }
+      }
+    }
+
+    instances.Bind(Buffer::Target::Array);
+    Buffer::Data(
+        Buffer::Target::Array,
+        BufferData(instance_positions)
+    );
+    int stride = sizeof(mat4);
+    for (int i = 0; i < 4; ++i) {
+      VertexArrayAttrib instance_attr(prog, Attribute::InstanceTransform + i);
+      size_t offset = sizeof(vec4) * i;
+      instance_attr.Pointer(4, DataType::Float, false, stride, (void*)offset);
+      instance_attr.Divisor(1);
+      instance_attr.Enable();
+    }
   }
 
   virtual void render(const mat4 & projection, const mat4 & modelview) {
@@ -260,7 +307,7 @@ public:
     Uniform<mat4>(prog, "ProjectionMatrix").Set(projection);
 
     cube.Bind();
-    Context::DrawArrays(PrimitiveType::Triangles, 0, 6 * 2 * 3);
+    Context::DrawArraysInstanced(PrimitiveType::Triangles, 0, 6 * 2 * 3, GRID_DIMENSTIONS);
   }
 };
 
@@ -412,13 +459,12 @@ namespace glfw {
 
 // A class to encapsulate using GLFW to handle input and render a scene
 class GlfwApp {
-  uvec2    windowSize;
-  ivec2    windowPosition;
-  GLFWwindow *  window{ nullptr };
 
 protected:
-  oglplus::Context gl;
-  unsigned int  frame{ 0 };
+  uvec2 windowSize;
+  ivec2 windowPosition;
+  GLFWwindow * window{ nullptr };
+  unsigned int frame{ 0 };
 
 public:
   GlfwApp() {
@@ -529,7 +575,7 @@ protected:
 
 protected:
   virtual void viewport(const ivec2 & pos, const uvec2 & size) {
-    gl.Viewport(pos.x, pos.y, size.x, size.y);
+    oglplus::Context::Viewport(pos.x, pos.y, size.x, size.y);
   }
 
 private:
@@ -702,13 +748,18 @@ public:
 
 
   virtual GLFWwindow * createRenderingTarget(uvec2 & size, ivec2 & pos) {
-    size = hmdNativeResolution;
-    pos = hmdDesktopPosition;
-
     bool directHmdMode = false;
     ON_WINDOWS([&]{
       directHmdMode = (0 == (ovrHmdCap_ExtendDesktop & ovrHmd_GetEnabledCaps(hmd)));
     });
+
+    // On linux the default is to leave the screen rotated
+    ON_LINUX([&]{
+      std::swap(hmdNativeResolution.x, hmdNativeResolution.y);
+    });
+
+    size = hmdNativeResolution;
+    pos = hmdDesktopPosition;
 
     GLFWwindow * result;
     if (directHmdMode) {
@@ -780,8 +831,15 @@ protected:
     int distortionCaps = 0
       | ovrDistortionCap_Vignette
       | ovrDistortionCap_Chromatic
+      | ovrDistortionCap_Overdrive
       | ovrDistortionCap_TimeWarp
       ;
+
+    ON_LINUX([&]{
+      distortionCaps |= ovrDistortionCap_LinuxDevFullscreen;
+      cfg.OGL.Disp = glfwGetX11Display();
+      cfg.OGL.Win = glfwGetX11Window(window);
+    });
 
     int configResult = ovrHmd_ConfigureRendering(hmd, &cfg.Config,
       distortionCaps, hmd->MaxEyeFov, eyeRenderDescs);
@@ -789,7 +847,7 @@ protected:
 
     ovr::for_each_eye([&](ovrEyeType eye){
       const ovrEyeRenderDesc & erd = eyeRenderDescs[eye];
-      ovrMatrix4f ovrPerspectiveProjection = ovrMatrix4f_Projection(erd.Fov, 0.01f, 100000.0f, true);
+      ovrMatrix4f ovrPerspectiveProjection = ovrMatrix4f_Projection(erd.Fov, OVR_DEFAULT_IPD * 4, 100000.0f, true);
       projections[eye] = ovr::toGlm(ovrPerspectiveProjection);
       eyeOffsets[eye] = erd.HmdToEyeViewOffset;
 
@@ -809,6 +867,18 @@ protected:
   }
 
   virtual void onKey(int key, int scancode, int action, int mods) {
+    static bool hswDismissed = false;
+    if (!hswDismissed) {
+      ovrHSWDisplayState hsw;
+      ovrHmd_GetHSWDisplayState(hmd, &hsw);
+      if (hsw.Displayed) {
+        ovrHmd_DismissHSWDisplay(hmd);
+        return;
+      } else {
+        hswDismissed = true;
+      }
+    }
+
     if (GLFW_PRESS == action) switch (key) {
     case GLFW_KEY_R:
       ovrHmd_RecenterPose(hmd);
@@ -828,7 +898,7 @@ protected:
 
       // Render the scene to an offscreen buffer
       eyeFbos[eye]->fbo.Bind(oglplus::Framebuffer::Target::Draw);
-      gl.Viewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
+      oglplus::Context::Viewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
       renderScene(projections[eye], ovr::toGlm(eyePoses[eye]));
     }
     oglplus::DefaultFramebuffer().Bind(oglplus::Framebuffer::Target::Draw);
