@@ -35,10 +35,10 @@ public:
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    gl::Stacks::projection().top() = glm::perspective(
+    Stacks::projection().top() = glm::perspective(
       PI / 3.0f, glm::aspect(windowSize),
       0.01f, 10000.0f);
-    gl::Stacks::modelview().top() = glm::lookAt(
+    Stacks::modelview().top() = glm::lookAt(
       glm::vec3(0.0f, 0.0f, 3.5f),
       GlUtils::ORIGIN, GlUtils::UP);
   }
@@ -66,8 +66,8 @@ public:
     ovrTrackingState predictedState = ovrHmd_GetTrackingState(hmd, ovr_GetTimeInSeconds() + predictionValue);
     ovrTrackingState recordedState = ovrHmd_GetTrackingState(hmd, ovr_GetTimeInSeconds());
     // Update the modelview to reflect the orientation of the Rift
-    actual = glm::mat4_cast(Rift::fromOvr(recordedState.HeadPose.ThePose.Orientation));
-    predicted = glm::mat4_cast(Rift::fromOvr(predictedState.HeadPose.ThePose.Orientation));
+    actual = glm::mat4_cast(ovr::toGlm(recordedState.HeadPose.ThePose.Orientation));
+    predicted = glm::mat4_cast(ovr::toGlm(predictedState.HeadPose.ThePose.Orientation));
   }
 
   void draw() {
@@ -78,7 +78,7 @@ public:
         predictionValue * 1000.0f);
     renderStringAt(message, -0.9f, 0.9f);
 
-    gl::MatrixStack & mv = gl::Stacks::modelview();
+    MatrixStack & mv = Stacks::modelview();
     mv.with_push([&]{
       mv.transform(predicted);
       GlUtils::renderArtificialHorizon();

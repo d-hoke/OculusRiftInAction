@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "Config.h"
 
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -67,7 +68,27 @@ inline float aspect(const glm::vec2 & v) {
 
 #include <GL/glew.h>
 
-#pragma warning( disable : 4068 4244 4267 4065)
+#include <OVR_CAPI.h>
+#include <Kernel/OVR_Types.h>
+#include <OVR_CAPI_GL.h>
+#if defined(OVR_OS_WIN32)
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_EXPOSE_NATIVE_WGL
+#elif defined(OVR_OS_MAC)
+#define GLFW_EXPOSE_NATIVE_COCOA
+#define GLFW_EXPOSE_NATIVE_NSGL
+#elif defined(OVR_OS_LINUX)
+#define GLFW_EXPOSE_NATIVE_X11
+#define GLFW_EXPOSE_NATIVE_GLX
+#endif
+
+#include <GLFW/glfw3.h>
+
+// For some interaction with the Oculus SDK we'll need the native 
+// window handle
+#include <GLFW/glfw3native.h>
+
+#pragma warning( disable : 4068 4244 4267 4065 4101)
 #include <oglplus/config/gl.hpp>
 #include <oglplus/all.hpp>
 #include <oglplus/interop/glm.hpp>
@@ -75,7 +96,15 @@ inline float aspect(const glm::vec2 & v) {
 #include <oglplus/bound/framebuffer.hpp>
 #include <oglplus/bound/renderbuffer.hpp>
 #include <oglplus/bound/buffer.hpp>
-#pragma warning( default : 4068 4244 4267 4065)
+#include <oglplus/shapes/cube.hpp>
+#include <oglplus/images/image.hpp>
+#include <oglplus/shapes/wicker_torus.hpp>
+#include <oglplus/shapes/sky_box.hpp>
+#include <oglplus/shapes/wrapper.hpp>
+#include <oglplus/shapes/plane.hpp>
+#include <oglplus/opt/list_init.hpp>
+#pragma warning( default : 4068 4244 4267 4065 4101)
+
 
 #include <Resources.h>
 
@@ -83,21 +112,25 @@ inline float aspect(const glm::vec2 & v) {
 #include "Files.h"
 #include "IO.h"
 
-#include "rendering/Shaders.h"
 #include "rendering/Lights.h"
 #include "rendering/MatrixStack.h"
 #include "rendering/State.h"
 #include "rendering/Mesh.h"
-#include "rendering/Geometry.h"
+#include "rendering/Colors.h"
+#include "rendering/Vectors.h"
+
+#include "opengl/Constants.h"
+#include "opengl/Hooks.h"
+
+#include "opengl/Framebuffer.h"
+#include "opengl/Geometry.h"
+#include "opengl/Textures.h"
+#include "opengl/Shaders.h"
+
+#include "opengl/Utils.h"
 
 #include "GlUtils.h"
 #include "GlfwApp.h"
-
-
-#include <OVR_CAPI.h>
-#include <Kernel/OVR_Types.h>
-#include <OVR_CAPI_GL.h>
-
 
 #include "OvrUtils.h"
 #include "RiftApp.h"
@@ -108,7 +141,6 @@ inline float aspect(const glm::vec2 & v) {
 //#include <GlShaders.h>
 //#include <GlGeometry.h>
 //#include <GlLighting.h>
-
 
 #ifndef PI
 #define PI 3.14159265f
@@ -144,7 +176,7 @@ inline float aspect(const glm::vec2 & v) {
         return -1; \
     }
 
-//#include "Config.h"
+//
 //
 //#include "Font.h"
 //#include "Files.h"

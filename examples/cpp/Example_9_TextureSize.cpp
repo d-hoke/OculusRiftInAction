@@ -66,7 +66,7 @@ public:
 
     glEnable(GL_DEPTH_TEST);
     glClear(GL_DEPTH_BUFFER_BIT);
-    gl::MatrixStack & mv = gl::Stacks::modelview();
+    MatrixStack & mv = Stacks::modelview();
     mv.withPush([&]{
       mv.postMultiply(glm::inverse(player));
       GlUtils::renderCubeScene(ipd, eyeHeight);

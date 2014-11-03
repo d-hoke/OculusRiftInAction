@@ -184,7 +184,7 @@ public:
 
   virtual void update() {
     CameraControl::instance().applyInteraction(player);
-    gl::Stacks::modelview().top() = glm::inverse(player);
+    Stacks::modelview().top() = glm::inverse(player);
     glm::perspective(60.0f, 800.0f / 600.0f, 0.1f, 100.0f);
   }
 

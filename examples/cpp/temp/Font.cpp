@@ -263,10 +263,10 @@ void Font::renderString(
     maxWidth /= scale;
   }
 
-  gl::MatrixStack & mv = gl::Stacks::modelview();
+  MatrixStack & mv = Stacks::modelview();
   size_t mvDepth = mv.size();
 
-  glm::vec4 aspectTest = gl::Stacks::projection().top() * glm::vec4(1, 1, 0, 1);
+  glm::vec4 aspectTest = Stacks::projection().top() * glm::vec4(1, 1, 0, 1);
   float aspect = std::abs(aspectTest.x / aspectTest.y);
   mv.push().translate(cursor).translate(glm::vec2(0, scale * -mAscent));
 
@@ -280,7 +280,7 @@ void Font::renderString(
   program->setUniform("Color", glm::vec4(1));
   program->setUniform("Font", 0);
   program->setUniform4x4f("Projection",
-      gl::Stacks::projection().top());
+      Stacks::projection().top());
 
   mTexture->bind();
   mGeometry->bindVertexArray();

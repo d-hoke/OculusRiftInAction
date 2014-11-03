@@ -15,7 +15,7 @@ void CubeScene::initGl() {
   glDisable(GL_BLEND);
   glClearColor(0.65f, 0.65f, 0.65f, 1);
   glEnable(GL_DEPTH_TEST);
-  gl::Stacks::modelview().push().identity();
+  Stacks::modelview().push().identity();
 
   program = GlUtils::getProgram(Resource::SHADERS_CHAPTER5_VS, Resource::SHADERS_CHAPTER5_FS);
   cube = GlUtils::getColorCubeGeometry();
@@ -63,7 +63,7 @@ void CubeScene::update() {
   CameraControl::instance().applyInteraction(player);
   camera = glm::inverse(player);
 
-  gl::Stacks::modelview().top() = camera;
+  Stacks::modelview().top() = camera;
 }
 
 void CubeScene::resetCamera() {
@@ -79,9 +79,9 @@ void CubeScene::drawCubeScene() {
 
   program->use();
 
-  gl::Stacks::lights().apply(*program);
-  gl::Stacks::projection().apply(*program);
-  gl::Stacks::modelview().apply(*program);
+  Stacks::lights().apply(*program);
+  Stacks::projection().apply(*program);
+  Stacks::modelview().apply(*program);
 
   cube->bindVertexArray();
   cube->drawInstanced(2);

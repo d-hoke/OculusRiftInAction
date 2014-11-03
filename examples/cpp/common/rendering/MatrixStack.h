@@ -14,6 +14,10 @@ public:
     *((std::stack<glm::mat4>*)this) = *((std::stack<glm::mat4>*)&other);
   }
 
+  operator const glm::mat4 & () const {
+    return top();
+  }
+
   MatrixStack & pop() {
     std::stack<glm::mat4>::pop();
     assert(!empty());

@@ -36,7 +36,7 @@ public:
       ovrTextureHeader & eyeTextureHeader =
         eyeTextures[eye].Header;
 
-      eyeTextureHeader.TextureSize = Rift::toOvr(textureSize);
+      eyeTextureHeader.TextureSize = ovr::fromGlm(textureSize);
       eyeTextureHeader.RenderViewport.Size =
         eyeTextureHeader.TextureSize;
 
@@ -49,7 +49,7 @@ public:
     ovrRenderAPIConfig config;
     memset(&config, 0, sizeof(config));
     config.Header.API = ovrRenderAPI_OpenGL;
-    config.Header.RTSize = Rift::toOvr(windowSize);
+    config.Header.RTSize = ovr::fromGlm(windowSize);
     config.Header.Multisample = 1;
 #if defined(OVR_OS_WIN32)
     ((ovrGLConfigData&)config).Window = 0;

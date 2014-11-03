@@ -19,7 +19,7 @@ class CubeScene_Stereo : public CubeScene {
 
 public:
   CubeScene_Stereo() {
-    gl::Stacks::projection().top() = glm::perspective(
+    Stacks::projection().top() = glm::perspective(
         PI / 2.0f, EYE_ASPECT, 0.01f, 100.0f);
 
     glm::vec3 offset(ipd / 2.0f, 0, 0);
@@ -39,13 +39,13 @@ public:
 
   virtual void draw() {
     glClear(GL_DEPTH_BUFFER_BIT);
-    gl::MatrixStack & mv = gl::Stacks::modelview();
+    MatrixStack & mv = Stacks::modelview();
 
     for (int i = 0; i < ovrEye_Count; ++i) {
       ovrEyeType eye = hmd->EyeRenderOrder[i];
       PerEyeArg & eyeArgs = eyes[eye];
       gl::viewport(eyeArgs.viewportPosition, EYE_SIZE);
-      gl::Stacks::with_push(mv, [&]{
+      Stacks::with_push(mv, [&]{
         mv.preMultiply(eyeArgs.modelviewOffset);
         drawCubeScene();
       });

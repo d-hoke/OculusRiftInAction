@@ -45,13 +45,13 @@ public:
       textureHeader.RenderViewport.Size = texSize;
       textureHeader.RenderViewport.Pos.x = 0;
       textureHeader.RenderViewport.Pos.y = 0;
-      eyeArg.frameBuffer.init(Rift::fromOvr(texSize));
+      eyeArg.frameBuffer.init(ovr::toGlm(texSize));
       ((ovrGLTexture&)textures[eye]).OGL.TexId = eyeArg.frameBuffer.color->texture;
 
       hmdToEyeOffsets[eye] = eyeRenderDescs[eye].HmdToEyeViewOffset;
       ovrMatrix4f projection = ovrMatrix4f_Projection(fov, 0.01f, 100, true);
 
-      eyeArg.projection = Rift::fromOvr(projection);
+      eyeArg.projection = ovr::toGlm(projection);
     });
   }
 
@@ -63,16 +63,16 @@ public:
     ovrPosef eyePoses[2];
     ovrHmd_BeginFrame(hmd, frameIndex);
     ovrHmd_GetEyePoses(hmd, frameIndex, hmdToEyeOffsets, eyePoses, nullptr);
-    gl::MatrixStack & mv = gl::Stacks::modelview();
+    MatrixStack & mv = Stacks::modelview();
     for (int i = 0; i < ovrEye_Count; ++i) {
       ovrEyeType eye = hmd->EyeRenderOrder[i];
       PerEyeArg & eyeArgs = eyes[eye];
-      gl::Stacks::projection().top() = eyeArgs.projection;
+      Stacks::projection().top() = eyeArgs.projection;
 
       eyeArgs.frameBuffer.withFramebufferActive([&]{
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        gl::Stacks::with_push(mv, [&]{
-          mv.preMultiply(glm::inverse(Rift::fromOvr(eyePoses[eye])));
+        Stacks::with_push(mv, [&]{
+          mv.preMultiply(glm::inverse(ovr::toGlm(eyePoses[eye])));
           drawCubeScene();
         });
       });

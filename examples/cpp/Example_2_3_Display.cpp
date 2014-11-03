@@ -1,8 +1,11 @@
 #include "Common.h"
 
+
 class RiftDisplay : public GlfwApp {
-glm::uvec2 eyeSize;
-ovrHmd hmd;
+  glm::uvec2 eyeSize;
+  bool directMode{ false };
+  void * nativeWindow{ nullptr };
+  ovrHmd hmd;
 
 public:
 RiftDisplay() {
@@ -11,26 +14,57 @@ RiftDisplay() {
     FAIL("Unable to detect Rift display");
   }
 
-  windowPosition = glm::ivec2(
+  if (directMode) {
+    // FIXME (find a monitor to place the window on)
+    windowPosition = glm::ivec2(
       hmd->WindowsPos.x,
       hmd->WindowsPos.y);
 
-  GLFWmonitor * hmdMonitor =
-      GlfwApp::getMonitorAtPosition(windowPosition);
-  const GLFWvidmode * videoMode =
-      glfwGetVideoMode(hmdMonitor);
-  windowSize = glm::uvec2(
-      videoMode->width, videoMode->height);
+    windowSize = glm::uvec2(
+      hmd->Resolution.w,
+      hmd->Resolution.h);
+  } else {
+    windowPosition = glm::ivec2(
+      hmd->WindowsPos.x,
+      hmd->WindowsPos.y);
+
+    // FIXME (query actual size)
+    windowSize = glm::uvec2(
+      hmd->Resolution.w,
+      hmd->Resolution.h);
+  }
 
   eyeSize = windowSize;
   eyeSize.x /= 2;
 }
 
 void createRenderingTarget() {
-  glfwWindowHint(GLFW_DECORATED, 0);
-  createWindow(windowSize, windowPosition);
-  if (glfwGetWindowAttrib(window, GLFW_DECORATED)) {
-    FAIL("Unable to create undecorated window");
+  if (directMode) {
+    // FIXME when the SDK works properly with different sized windows in GL
+  } else {
+    glfwWindowHint(GLFW_DECORATED, 0);
+  }
+
+  window = glfw::createWindow(windowSize, windowPosition);
+  glfwMakeContextCurrent(window);
+
+  nativeWindow = glfw::getNativeWindowHandle(window);
+  ovrHmd_AttachToWindow(hmd, nativeWindow, nullptr, nullptr);
+
+  unsigned int enabledCaps = ovrHmd_GetEnabledCaps(hmd);
+  if (0 == (ovrHmdCap_ExtendDesktop & enabledCaps)) {
+    ON_WINDOWS([&]{
+      directMode = true;
+    });
+  }
+
+  if (directMode) {
+    nativeWindow = glfw::getNativeWindowHandle(window);
+    ovrHmd_AttachToWindow(hmd, nativeWindow, nullptr, nullptr);
+  } else {
+    if (glfwGetWindowAttrib(window, GLFW_DECORATED)) {
+      FAIL("Unable to create undecorated window");
+    }
   }
 }
 
@@ -40,15 +74,19 @@ void initGl() {
 }
 
 void draw() {
-  glm::ivec2 position(0, 0);
-  gl::scissor(position, eyeSize);
-  gl::clearColor(Colors::red);
-  glClear(GL_COLOR_BUFFER_BIT);
+  glm::ivec2 position = glm::ivec2(0, 0);
+  glm::vec4 color = glm::vec4(1, 0, 0, 1);
+
+  oglplus::Context::Scissor(position.x, position.y, eyeSize.x, eyeSize.y);
+  oglplus::Context::ClearColor(color.r, color.g, color.b, color.a);
+  oglplus::Context::Clear().ColorBuffer();
 
   position = glm::ivec2(eyeSize.x, 0);
-  gl::scissor(position, eyeSize);
-  gl::clearColor(Colors::blue);
-  glClear(GL_COLOR_BUFFER_BIT);
+  color = glm::vec4(0, 0, 1, 1);
+
+  oglplus::Context::Scissor(position.x, position.y, eyeSize.x, eyeSize.y);
+  oglplus::Context::ClearColor(color.r, color.g, color.b, color.a);
+  oglplus::Context::Clear().ColorBuffer();
 }
 };
 

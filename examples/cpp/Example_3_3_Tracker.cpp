@@ -26,18 +26,18 @@ public:
   }
 
   void createRenderingTarget() {
-    createWindow(glm::uvec2(1280, 800), glm::ivec2(100, 100));
+    glfw::createWindow(glm::uvec2(1280, 800), glm::ivec2(100, 100));
+    Stacks::projection().top() = glm::perspective(
+      PI / 3.0f, glm::aspect(windowSize),
+      0.01f, 10000.0f);
+    Stacks::modelview().top() = glm::lookAt(
+      glm::vec3(0.0f, 0.0f, 3.5f),
+      GlUtils::ORIGIN, GlUtils::UP);
   }
 
   void initGl() {
     GlfwApp::initGl();
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    gl::Stacks::projection().top() = glm::perspective(
-        PI / 3.0f, glm::aspect(windowSize),
-        0.01f, 10000.0f);
-    gl::Stacks::modelview().top() = glm::lookAt(
-        glm::vec3(0.0f, 0.0f, 3.5f),
-        GlUtils::ORIGIN, GlUtils::UP);
   }
 
   virtual void onKey(int key, int scancode, int action, int mods) {
@@ -64,23 +64,23 @@ public:
   void update() {
     ovrTrackingState sensorState = ovrHmd_GetTrackingState(hmd, 0);
     ovrPoseStatef & poseState = sensorState.HeadPose;
-    orientation = Rift::fromOvr(
+    orientation = ovr::toGlm(
       poseState.ThePose.Orientation);
-    linearA = Rift::fromOvr(
+    linearA = ovr::toGlm(
       poseState.LinearAcceleration);
-    angularV = Rift::fromOvr(
+    angularV = ovr::toGlm(
       poseState.AngularVelocity);
   }
 
   void draw() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    gl::MatrixStack & mv = gl::Stacks::modelview();
+    MatrixStack & mv = Stacks::modelview();
     mv.withPush([&]{
       mv.rotate(orientation); 
       GlUtils::renderRift();
     });
 
-    gl::MatrixStack & pr = gl::Stacks::projection();
+    MatrixStack & pr = Stacks::projection();
     pr.withPush([&]{
       pr.top() = glm::ortho(
         -1.0f, 1.0f,

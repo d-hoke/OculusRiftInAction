@@ -18,6 +18,8 @@ public:
     static void say(std::ostream & out, const char * message, ...);
     static std::string format(const char * formatString, ...);
     static std::string getResourceData(Resource resource);
+    static std::vector<uint8_t> getResourceByteVector(Resource resource);
+    static std::stringstream getResourceStream(Resource resource);
     static std::string replaceAll(const std::string & in, const std::string & from, const std::string & to);
 };
 

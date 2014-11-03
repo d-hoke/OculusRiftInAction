@@ -277,7 +277,7 @@ gl::IndexBufferPtr getCubeWireIndices() {
 void GlUtils::tumble(const glm::vec3 & camera) {
   static const float Y_ROTATION_RATE = 0.01f;
   static const float Z_ROTATION_RATE = 0.05f;
-  glm::mat4 & modelview = gl::Stacks::modelview().top();
+  glm::mat4 & modelview = Stacks::modelview().top();
   modelview = glm::lookAt(camera, ORIGIN, UP);
   modelview = glm::rotate(modelview,
       Platform::elapsedMillis() * Y_ROTATION_RATE, GlUtils::Y_AXIS);
@@ -289,9 +289,9 @@ void GlUtils::renderGeometry(
   const gl::GeometryPtr & geometry,
     gl::ProgramPtr program) {
   program->use();
-  gl::Stacks::lights().apply(program);
-  gl::Stacks::projection().apply(program);
-  gl::Stacks::modelview().apply(program);
+  Stacks::lights().apply(program);
+  Stacks::projection().apply(program);
+  Stacks::modelview().apply(program);
   geometry->bindVertexArray();
   geometry->draw();
 
@@ -578,7 +578,7 @@ void GlUtils::renderArtificialHorizon(float alpha) {
   static gl::GeometryPtr geometry;
   if (!geometry) {
     Mesh mesh;
-    gl::MatrixStack & m = mesh.getModel();
+    MatrixStack & m = mesh.getModel();
 
     m.push();
     {
@@ -680,7 +680,7 @@ void GlUtils::renderRift() {
 
   // The Rift model is aligned with the wrong axis, so we
   // rotate it by 90 degrees
-  gl::MatrixStack & mv = gl::Stacks::modelview();
+  MatrixStack & mv = Stacks::modelview();
   mv.push().rotate(glm::angleAxis(-HALF_PI, GlUtils::X_AXIS));
   GlUtils::renderGeometry(geometry, program);
   mv.pop();
@@ -705,7 +705,7 @@ void GlUtils::drawQuad(const glm::vec2 & min, const glm::vec2 & max) {
 gl::GeometryPtr GlUtils::getColorCubeGeometry() {
   Mesh mesh;
   glm::vec3 move(0, 0, 0.5f);
-  gl::MatrixStack & m = mesh.model;
+  MatrixStack & m = mesh.model;
 
   m.push().rotate(glm::angleAxis(PI / 2.0f, Y_AXIS)).translate(move);
   mesh.color = Colors::red;
@@ -784,11 +784,11 @@ void GlUtils::drawAngleTicks() {
   }
 
   // Fix the modelview at exactly 1 unit away from the origin, no rotation
-  gl::Stacks::modelview().push(glm::mat4(1)).translate(glm::vec3(0, 0, -1));
+  Stacks::modelview().push(glm::mat4(1)).translate(glm::vec3(0, 0, -1));
   ProgramPtr program = getProgram(Resource::SHADERS_SIMPLE_VS, Resource::SHADERS_COLORED_FS);
   program->use();
   renderGeometry(g, program);
-  gl::Stacks::modelview().pop();
+  Stacks::modelview().pop();
 }
 
 void GlUtils::draw3dGrid() {
@@ -898,7 +898,7 @@ void GlUtils::renderParagraph(const std::string & str) {
 void GlUtils::renderString(const std::string & str, glm::vec3 & cursor3d,
     float fontSize, Resource fontResource) {
   glm::vec4 target = glm::vec4(cursor3d, 0);
-  target = gl::Stacks::projection().top() * gl::Stacks::modelview().top() * target;
+  target = Stacks::projection().top() * Stacks::modelview().top() * target;
   glm::vec2 newCursor(target.x, target.y);
   renderString(str, newCursor, fontSize, fontResource);
 }
@@ -994,7 +994,7 @@ void GlUtils::renderSkybox(Resource firstResource) {
     Resource::SHADERS_CUBEMAP_FS);
 
   // Skybox texture
-  gl::MatrixStack & mv = gl::Stacks::modelview();
+  MatrixStack & mv = Stacks::modelview();
   mv.push().untranslate();
 
   // TODO better state management
@@ -1092,7 +1092,7 @@ void cubeRecurseDraw(gl::GeometryPtr & cubeGeometry, gl::ProgramPtr & renderProg
   float angle = elapsed * 0.2f * ((rand() % 10) - 5);
 
   float scale = 0.7f;
-  gl::MatrixStack & mv = gl::Stacks::modelview();
+  MatrixStack & mv = Stacks::modelview();
   mv.with_push([&]{
     mv.rotate(angle, axis).translate(translation).scale(scale).apply(renderProgram);
     cubeGeometry->draw();
@@ -1110,11 +1110,11 @@ void GlUtils::cubeRecurse(int depth, float elapsed) {
   gl::ProgramPtr renderProgram = GlUtils::getProgram(
     Resource::SHADERS_COLORED_VS, Resource::SHADERS_COLORED_FS);
   renderProgram->use();
-  gl::Stacks::projection().apply(renderProgram);
+  Stacks::projection().apply(renderProgram);
 
   static gl::GeometryPtr cubeGeometry = GlUtils::getColorCubeGeometry();
   cubeGeometry->bindVertexArray();
-  gl::MatrixStack & mv = gl::Stacks::modelview();
+  MatrixStack & mv = Stacks::modelview();
   mv.with_push([&]{
     mv.scale(0.4f);
     mv.apply(renderProgram);
@@ -1129,7 +1129,7 @@ void GlUtils::dancingCubes(int elements, float elapsed) {
   gl::ProgramPtr renderProgram = GlUtils::getProgram(
     Resource::SHADERS_COLORED_VS, Resource::SHADERS_COLORED_FS);
   renderProgram->use();
-  gl::Stacks::projection().apply(renderProgram);
+  Stacks::projection().apply(renderProgram);
 
   static gl::GeometryPtr cubeGeometry = getColorCubeGeometry();
   cubeGeometry->bindVertexArray();
@@ -1137,10 +1137,10 @@ void GlUtils::dancingCubes(int elements, float elapsed) {
   static glm::vec3 AXES[] = { GlUtils::X_AXIS, GlUtils::Y_AXIS,
     GlUtils::Z_AXIS };
 
-  gl::MatrixStack & mv = gl::Stacks::modelview();
+  MatrixStack & mv = Stacks::modelview();
   mv.with_push([&]{
     mv.scale(0.2f);
-    gl::Stacks::modelview().apply(renderProgram);
+    Stacks::modelview().apply(renderProgram);
     cubeGeometry->draw();
   });
 
@@ -1159,12 +1159,12 @@ void GlUtils::dancingCubes(int elements, float elapsed) {
 
     mv.with_push([&]{
       mv.translate(tr).scale(sc);
-      gl::Stacks::modelview().apply(renderProgram);
+      Stacks::modelview().apply(renderProgram);
       cubeGeometry->draw();
     });
     mv.with_push([&]{
       mv.translate(-tr).scale(sc);
-      gl::Stacks::modelview().apply(renderProgram);
+      Stacks::modelview().apply(renderProgram);
       cubeGeometry->draw();
     });
   }
@@ -1230,9 +1230,9 @@ void GlUtils::renderCubeScene(float ipd, float eyeHeight) {
   }
 
   program->use();
-  gl::Stacks::lights().apply(*program);
-  gl::Stacks::projection().apply(*program);
-  gl::MatrixStack & mv = gl::Stacks::modelview();
+  Stacks::lights().apply(*program);
+  Stacks::projection().apply(*program);
+  MatrixStack & mv = Stacks::modelview();
   mv.withPush([&]{
     mv.translate(glm::vec3(0, eyeHeight, 0)).scale(glm::vec3(ipd)).apply(*program);
   });

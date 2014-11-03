@@ -7,7 +7,7 @@ static const glm::ivec2 WINDOW_POS(100, 100);
 class CubeScene_Mono : public CubeScene {
 public:
   CubeScene_Mono() {
-    gl::Stacks::projection().top() = glm::perspective(
+    Stacks::projection().top() = glm::perspective(
         PI / 2.0f, glm::aspect(WINDOW_SIZE), 0.01f, 100.0f);
   }
 

@@ -18,10 +18,6 @@
  ************************************************************************************/
 
 #pragma once
-#include <GLFW/glfw3.h>
-//#include <climits>
-//#include <iostream>
-//#include <string>
 
 namespace glfw {
   inline glm::uvec2 getSize(GLFWmonitor * monitor) {
@@ -81,6 +77,46 @@ namespace glfw {
     return nullptr;
   }
 
+  inline void * getNativeWindowHandle(GLFWwindow * window) {
+    void * nativeWindowHandle = nullptr;
+    ON_WINDOWS([&]{ 
+      nativeWindowHandle = (void*)glfwGetWin32Window(window); 
+    });
+    ON_LINUX([&]{ 
+      nativeWindowHandle = (void*)glfwGetX11Window(window); 
+    });
+    ON_MAC([&]{ 
+      nativeWindowHandle = (void*)glfwGetCocoaWindow(window); 
+    });
+    return nativeWindowHandle;
+  }
+
+
+  inline GLFWwindow * createWindow(const glm::uvec2 & size, const glm::ivec2 & position = glm::ivec2(INT_MIN)) {
+    GLFWwindow * window = glfwCreateWindow(size.x, size.y, "glfw", nullptr, nullptr);
+    if (!window) {
+      FAIL("Unable to create rendering window");
+    }
+    if ((position.x > INT_MIN) && (position.y > INT_MIN)) {
+      glfwSetWindowPos(window, position.x, position.y);
+    }
+    return window;
+  }
+
+  inline GLFWwindow * createWindow(int w, int h, int x = INT_MIN, int y = INT_MIN) {
+    return createWindow(glm::uvec2(w, h), glm::ivec2(x, y));
+  }
+
+  inline GLFWwindow * createFullscreenWindow(const glm::uvec2 & size, GLFWmonitor * targetMonitor) {
+    const GLFWvidmode * currentMode = glfwGetVideoMode(targetMonitor);
+    GLFWwindow * window = glfwCreateWindow(size.x, size.y, "glfw", targetMonitor, nullptr);
+    assert(window != 0);
+    return window;
+  }
+
+  inline GLFWwindow * createSecondaryScreenWindow(const glm::uvec2 & size) {
+    return createWindow(size, getSecondaryScreenPosition(size));
+  }
 }
 
 class GlfwApp {
@@ -135,6 +171,7 @@ public:
         framecount = 0;
       }
     }
+    shutdownGl();
     return 0;
   }
 
@@ -156,33 +193,6 @@ protected:
 #ifdef DEBUG_BUILD
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 #endif
-  }
-
-  void createWindow(const glm::uvec2 & size, const glm::ivec2 & position = glm::ivec2(INT_MIN)) {
-    windowSize = size;
-    windowPosition = position;
-    window = glfwCreateWindow(size.x, size.y, "glfw", nullptr, nullptr);
-    if (!window) {
-      FAIL("Unable to create rendering window");
-    }
-    if ((position.x > INT_MIN) && (position.y > INT_MIN)) {
-      glfwSetWindowPos(window, position.x, position.y);
-    }
-  }
-
-  void createWindow(int w, int h, int x = INT_MIN, int y = INT_MIN) {
-    createWindow(glm::uvec2(w, h), glm::ivec2(x, y));
-  }
-
-  void createFullscreenWindow(const glm::uvec2 & size, GLFWmonitor * targetMonitor) {
-    windowSize = size;
-    const GLFWvidmode * currentMode = glfwGetVideoMode(targetMonitor);
-    window = glfwCreateWindow(windowSize.x, windowSize.y, "glfw", targetMonitor, nullptr);
-    assert(window != 0);
-  }
-
-  void createSecondaryScreenWindow(const glm::uvec2 & size) {
-    createWindow(size, glfw::getSecondaryScreenPosition(size));
   }
 
   void onCreate()  {
@@ -233,6 +243,10 @@ protected:
     glEnable(GL_DEPTH_TEST);
     //  query = gl::TimeQueryPtr(new gl::TimeQuery());
     GlUtils::checkError();
+  }
+
+  virtual void shutdownGl() {
+    oria::runShutdownHooks();
   }
   
   virtual void finishFrame() {
@@ -288,23 +302,23 @@ private:
   }
 
   virtual void screenshot() {
-#ifdef HAVE_OPENCV
-    //use fast 4-byte alignment (default anyway) if possible
-    glFlush();
-    cv::Mat img(windowSize.y, windowSize.x, CV_8UC3);
-    glPixelStorei(GL_PACK_ALIGNMENT, (img.step & 3) ? 1 : 4);
-    glPixelStorei(GL_PACK_ROW_LENGTH, img.step / img.elemSize());
-    glReadPixels(0, 0, img.cols, img.rows, GL_BGR, GL_UNSIGNED_BYTE, img.data);
-    cv::flip(img, img, 0);
-
-    static int counter = 0;
-    static char buffer[128];
-    sprintf(buffer, "screenshot%05i.png", counter++);
-    bool success = cv::imwrite(buffer, img);
-    if (!success) {
-      throw std::runtime_error("Failed to write image");
-    }
-#endif
+//#ifdef HAVE_OPENCV
+//    //use fast 4-byte alignment (default anyway) if possible
+//    glFlush();
+//    cv::Mat img(windowSize.y, windowSize.x, CV_8UC3);
+//    glPixelStorei(GL_PACK_ALIGNMENT, (img.step & 3) ? 1 : 4);
+//    glPixelStorei(GL_PACK_ROW_LENGTH, img.step / img.elemSize());
+//    glReadPixels(0, 0, img.cols, img.rows, GL_BGR, GL_UNSIGNED_BYTE, img.data);
+//    cv::flip(img, img, 0);
+//
+//    static int counter = 0;
+//    static char buffer[128];
+//    sprintf(buffer, "screenshot%05i.png", counter++);
+//    bool success = cv::imwrite(buffer, img);
+//    if (!success) {
+//      throw std::runtime_error("Failed to write image");
+//    }
+//#endif
   }
 };
 

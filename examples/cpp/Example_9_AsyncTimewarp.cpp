@@ -75,7 +75,7 @@ public:
     ovrGLConfig cfg;
     memset(&cfg, 0, sizeof(cfg));
     cfg.OGL.Header.API = ovrRenderAPI_OpenGL;
-    cfg.OGL.Header.RTSize = Rift::toOvr(windowSize);
+    cfg.OGL.Header.RTSize = ovr::fromGlm(windowSize);
     cfg.OGL.Header.Multisample = 1;
 
     int distortionCaps = 0
@@ -96,7 +96,7 @@ public:
       ovrMatrix4f ovrPerspectiveProjection =
         ovrMatrix4f_Projection(erd.Fov, 0.01f, 100000.0f, true);
       perEyeArgs[eye].projection =
-        Rift::fromOvr(ovrPerspectiveProjection);
+        ovr::toGlm(ovrPerspectiveProjection);
       hmdToEyeOffsets[eye] = erd.HmdToEyeViewOffset;
     });
 
@@ -108,7 +108,7 @@ public:
     glEnable(GL_BLEND);
     for_each_eye([&](ovrEyeType eye){
       glm::uvec2 frameBufferSize =
-        Rift::fromOvr(eyeTextures[0].Header.TextureSize);
+        ovr::toGlm(eyeTextures[0].Header.TextureSize);
       for (int i = 0; i < 2; ++i) {
         frameBuffers[eye][i].init(frameBufferSize);
       }
@@ -203,11 +203,11 @@ public:
     for (int i = 0; i < 2; ++i) {
       ovrEyeType eye = hmd->EyeRenderOrder[i];
       const PerEyeArgs & eyeArgs = perEyeArgs[eye];
-      gl::MatrixStack & mv = gl::Stacks::modelview();
-      gl::Stacks::projection().top() = eyeArgs.projection;
-      gl::Stacks::with_push(mv, [&]{
+      MatrixStack & mv = Stacks::modelview();
+      Stacks::projection().top() = eyeArgs.projection;
+      Stacks::with_push(mv, [&]{
         // Apply the head pose
-        glm::mat4 m = Rift::fromOvr(renderPoses[eye]);
+        glm::mat4 m = ovr::toGlm(renderPoses[eye]);
         mv.preMultiply(glm::inverse(m));
         int renderBufferIndex = renderBuffers[eye];
         gl::FrameBufferWrapper & frameBuffer = 
@@ -237,7 +237,7 @@ public:
   void renderScene() {
     glEnable(GL_DEPTH_TEST);
     glClear(GL_DEPTH_BUFFER_BIT);
-    gl::MatrixStack & mv = gl::Stacks::modelview();
+    MatrixStack & mv = Stacks::modelview();
     mv.withPush([&]{
       mv.postMultiply(glm::inverse(player));
       GlUtils::renderCubeScene(ipd, eyeHeight);

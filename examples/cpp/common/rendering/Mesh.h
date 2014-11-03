@@ -94,6 +94,10 @@ public:
     indices.push_back((GLuint)indices.size());
   }
 
+  void addTexCoord(const glm::vec2 & vertex) {
+    texCoords.push_back(vertex);
+  }
+
   void addMesh(const Mesh & mesh, bool forceColor) {
     size_t indexOffset = positions.size();
 

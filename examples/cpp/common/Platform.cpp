@@ -80,6 +80,19 @@ std::string Platform::getResourceData(Resource resource) {
   return dataStr;
 }
 
+std::vector<uint8_t> Platform::getResourceByteVector(Resource resource) {
+  size_t size = Resources::getResourceSize(resource);
+  std::vector<uint8_t> data; 
+  data.resize(size);
+  Resources::getResourceData(resource, &data[0]);
+  return data;
+}
+
+std::stringstream Platform::getResourceStream(Resource resource) {
+  return std::stringstream(Platform::getResourceData(resource));
+}
+
+
 std::string Platform::format(const char * fmt_str, ...) {
     int final_n, n = (int)strlen(fmt_str) * 2; /* reserve 2 times as much as the length of the fmt_str */
     std::string str;

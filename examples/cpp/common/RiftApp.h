@@ -115,10 +115,15 @@ public:
   virtual void createRenderingTarget() {
     if (fullscreen) {
       // Fullscreen apps should use the native resolution of the Rift
-      this->createFullscreenWindow(hmdNativeResolution, hmdMonitor);
+      windowSize = hmdNativeResolution;
+      windowPosition = glm::ivec2(0);
+      window = glfw::createFullscreenWindow(windowSize, hmdMonitor);
     } else {
       glfwWindowHint(GLFW_DECORATED, 0);
-      createWindow(windowSize, hmdDesktopPosition);
+      // FIXME
+      windowSize = hmdNativeResolution;
+      windowPosition = hmdDesktopPosition;
+      window = glfw::createWindow(windowSize, windowPosition);
       if (glfwGetWindowAttrib(window, GLFW_DECORATED)) {
         FAIL("Unable to create undecorated window");
       }

@@ -12,7 +12,7 @@ struct Light {
 
 class Lights {
 public:
-  std::vector<vec3> lightPositions;
+  std::vector<vec4> lightPositions;
   std::vector<vec4> lightColors;
   vec4 ambient;
 
@@ -24,7 +24,7 @@ public:
 
   void addLight(const glm::vec3 & position = vec3(1),
       const vec4 & color = glm::vec4(1)) {
-    lightPositions.push_back(position);
+    lightPositions.push_back(glm::vec4(position, 1));
     lightColors.push_back(color);
   }
 
