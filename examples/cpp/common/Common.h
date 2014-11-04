@@ -79,8 +79,9 @@ private:
   std::function<void()> function;
 
 public:
-  Finally(std::function<void()> function) : function(function) {
-  }
+  Finally(std::function<void()> function) 
+    : function(function) { }
+
   virtual ~Finally() {
     function();
   }
@@ -102,9 +103,7 @@ public:
 
 #include "opengl/Utils.h"
 
-#include "GlUtils.h"
 #include "GlfwApp.h"
-
 
 
 #include <OVR_CAPI.h>

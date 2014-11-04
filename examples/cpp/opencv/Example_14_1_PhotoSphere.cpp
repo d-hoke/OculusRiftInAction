@@ -1,5 +1,4 @@
 #include "Common.h"
-#include "GlTexture.h"
 #include <fstream>
 #include <cstdio>
 #include <opencv2/core/core.hpp>

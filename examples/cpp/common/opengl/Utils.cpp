@@ -383,9 +383,37 @@ namespace oria {
     DefaultTexture().Bind(TextureTarget::_2D);
   }
 
-  void renderManikin() {
+  ShapeWrapperPtr loadShape(const std::initializer_list<const GLchar*>& names, Resource resource) {
     using namespace oglplus;
+    return ShapeWrapperPtr(new shapes::ShapeWrapper(names, shapes::CtmMesh(resource)));
+  }
 
+  ShapeWrapperPtr loadShape(const std::initializer_list<const GLchar*>& names, Resource resource, ProgramPtr program) {
+    using namespace oglplus;
+    return ShapeWrapperPtr(new shapes::ShapeWrapper(names, shapes::CtmMesh(resource), *program));
+  }
+
+  void renderManikin() {
+    static ProgramPtr program;
+    static ShapeWrapperPtr shape;
+
+    if (!program) {
+      program = loadProgram(Resource::SHADERS_LIT_VS, Resource::SHADERS_LITCOLORED_FS);
+      shape = loadShape({ "Position", "Normal" }, Resource::MESHES_MANIKIN_CTM, program);
+      Platform::addShutdownHook([&]{
+        program.reset();
+        shape.reset();
+      });
+    }
+
+
+    renderGeometry(shape, program, { [&]{
+      bindLights(program);
+    } });
+  }
+
+  void renderRift() {
+    using namespace oglplus;
     static ProgramPtr program;
     static ShapeWrapperPtr shape;
     if (!program) {
@@ -393,14 +421,18 @@ namespace oria {
         program.reset();
         shape.reset();
       });
+
       program = loadProgram(Resource::SHADERS_LIT_VS, Resource::SHADERS_LITCOLORED_FS);
-      shape = ShapeWrapperPtr(new shapes::ShapeWrapper(List("Position")("Normal").Get(), shapes::CtmMesh(Resource::MESHES_MANIKIN_CTM), *program));;
+      shape = ::oria::loadShape({ "Position", "Normal" }, Resource::MESHES_RIFT_CTM, program);
     }
 
-    renderGeometry(shape, program, { [&]{
-      bindLights(program);
-    } });
+    auto & mv = Stacks::modelview();
+    mv.withPush([&]{
+      mv.rotate(-HALF_PI - 0.22f, Vectors::X_AXIS).scale(0.5f);
+      renderGeometry(shape, program, { [&]{
+        oria::bindLights(program);
+      } });
+    });
   }
-
 }
 

@@ -1,38 +1,5 @@
 #include "Common.h"
 
-namespace oria {
-  inline void renderRift() {
-    using namespace oglplus;
-    GL_CHECK_ERROR;
-
-    static ProgramPtr program;
-    static ShapeWrapperPtr shape;
-    if (!program) {
-      oria::addShudownHook([&]{
-        program.reset();
-        shape.reset();
-      });
-      GL_CHECK_ERROR;
-      GLenum err = glGetError();
-      program = loadProgram(Resource::SHADERS_LIT_VS, Resource::SHADERS_LITCOLORED_FS);
-      GL_CHECK_ERROR;
-
-      shape = ShapeWrapperPtr(new shapes::ShapeWrapper(List("Position")("Normal").Get(), shapes::CtmMesh(Resource::MESHES_RIFT_CTM), *program));;
-      GL_CHECK_ERROR;
-
-    }
-
-    auto & mv = Stacks::modelview();
-    mv.withPush([&]{
-      mv.rotate(-HALF_PI - 0.22f, Vectors::X_AXIS).scale(0.5f);
-      renderGeometry(shape, program, { [&]{
-        oria::bindLights(program);
-      } });
-    });
-    GL_CHECK_ERROR;
-  }
-
-}
 class SensorFusionExample : public GlfwApp {
   ovrHmd hmd;
   glm::quat orientation;
@@ -74,7 +41,6 @@ public:
   void initGl() {
     GlfwApp::initGl();
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    GL_CHECK_ERROR;
   }
 
   virtual void onKey(int key, int scancode, int action, int mods) {
@@ -110,9 +76,7 @@ public:
   }
 
   void draw() {
-    GL_CHECK_ERROR;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    GL_CHECK_ERROR;
     MatrixStack & mv = Stacks::modelview();
     mv.withPush([&]{
       mv.rotate(orientation); 

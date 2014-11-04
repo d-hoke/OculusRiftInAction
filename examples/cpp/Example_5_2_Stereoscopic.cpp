@@ -7,7 +7,7 @@ static const glm::ivec2 WINDOW_POS(100, 100);
 static const glm::uvec2 EYE_SIZE(
     WINDOW_SIZE.x / 2, WINDOW_SIZE.y);
 static const float EYE_ASPECT = 
-    glm::aspect(EYE_SIZE);
+    aspect(EYE_SIZE);
 
 struct PerEyeArg {
   glm::uvec2 viewportPosition;

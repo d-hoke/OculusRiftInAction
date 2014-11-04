@@ -37,9 +37,13 @@ namespace oria {
     renderGeometry(shape, program, {});
   }
 
+  ShapeWrapperPtr loadShape(const std::initializer_list<const GLchar*>& names, Resource resource);
+  ShapeWrapperPtr loadShape(const std::initializer_list<const GLchar*>& names, Resource resource, ProgramPtr program);
   void renderCube(const glm::vec3 & color = Colors::white);
   void renderColorCube();
   void renderSkybox(Resource firstImageResource);
   void renderFloor();
   void renderManikin();
+  void renderRift();
+
 }
