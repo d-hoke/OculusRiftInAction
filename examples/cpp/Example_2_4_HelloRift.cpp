@@ -396,8 +396,8 @@ public:
     windowPosition = glm::ivec2(hmd->WindowsPos.x, hmd->WindowsPos.y);
     windowSize = glm::uvec2(hmd->Resolution.w, hmd->Resolution.h);
     if (debugDevice) {
-      windowPosition.x = 0;
-      windowPosition.y = -1080;
+//      windowPosition.x = 0;
+//      windowPosition.y = -1080;
     }
     ON_LINUX([&]{
       std::swap(windowSize.x, windowSize.y);
