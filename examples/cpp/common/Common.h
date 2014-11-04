@@ -126,6 +126,7 @@ inline float aspect(const glm::vec2 & v) {
 #include "opengl/Geometry.h"
 #include "opengl/Textures.h"
 #include "opengl/Shaders.h"
+#include "opengl/CtmMesh.h"
 
 #include "opengl/Utils.h"
 

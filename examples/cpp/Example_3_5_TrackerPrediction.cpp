@@ -26,8 +26,18 @@ public:
     hmd = nullptr;
   }
 
-  void createRenderingTarget() {
-    createWindow(glm::uvec2(1280, 800), glm::ivec2(100, 100));
+
+  virtual GLFWwindow * createRenderingTarget(glm::uvec2 & outSize, glm::ivec2 & outPosition) {
+    outSize = glm::uvec2(800, 600);
+    outPosition = glm::ivec2(100, 100);
+    Stacks::projection().top() = glm::perspective(
+      PI / 3.0f, aspect(outSize),
+      0.01f, 10000.0f);
+    Stacks::modelview().top() = glm::lookAt(
+      glm::vec3(0.0f, 0.0f, 3.5f),
+      Vectors::ORIGIN, Vectors::UP);
+
+    return glfw::createWindow(outSize, outPosition);
   }
 
   void initGl() {
@@ -36,11 +46,11 @@ public:
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     Stacks::projection().top() = glm::perspective(
-      PI / 3.0f, glm::aspect(windowSize),
+      PI / 3.0f, aspect(getSize()),
       0.01f, 10000.0f);
     Stacks::modelview().top() = glm::lookAt(
       glm::vec3(0.0f, 0.0f, 3.5f),
-      GlUtils::ORIGIN, GlUtils::UP);
+      Vectors::ORIGIN, Vectors::UP);
   }
 
   virtual void onKey(int key, int scancode, int action, int mods) {
@@ -71,7 +81,7 @@ public:
   }
 
   void draw() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    oglplus::Context::Clear().ColorBuffer().DepthBuffer();
     
     std::string message = Platform::format(
         "Prediction Delta: %0.2f ms\n",
@@ -79,11 +89,11 @@ public:
     renderStringAt(message, -0.9f, 0.9f);
 
     MatrixStack & mv = Stacks::modelview();
-    mv.with_push([&]{
+    mv.withPush([&]{
       mv.transform(predicted);
       GlUtils::renderArtificialHorizon();
     });
-    mv.with_push([&]{
+    mv.withPush([&]{
       mv.transform(actual).scale(1.25f);
       GlUtils::renderArtificialHorizon(0.3f);
     });

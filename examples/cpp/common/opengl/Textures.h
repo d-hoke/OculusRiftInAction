@@ -16,8 +16,9 @@ namespace oria {
     std::vector<uint8_t> data = Platform::getResourceByteVector(resource);
     cv::Mat image = cv::imdecode(data, CV_LOAD_IMAGE_COLOR);
     cv::flip(image, image, 0);
-    return ImagePtr(new images::Image(image.cols, image.rows, 1, 3, image.data,
+    ImagePtr result(new images::Image(image.cols, image.rows, 1, 3, image.data,
       PixelDataFormat::BGR, PixelDataInternalFormat::RGBA8));
+    return result;
 #else
     std::stringstream stream = Platform::getResourceStream(resource);
     return ImagePtr(new images::PNGImage(stream));
@@ -61,9 +62,11 @@ namespace oria {
       Context::Bound(TextureTarget::_2D, *texture)
         .MagFilter(TextureMagFilter::Linear)
         .MinFilter(TextureMinFilter::Linear);
+      ImagePtr image = loadImage(resource);
+      glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
       Texture::Image2D(
         TextureTarget::_2D,
-        *loadImage(resource)
+        *image
       );
       return texture;
     });

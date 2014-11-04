@@ -119,12 +119,25 @@ namespace glfw {
   }
 }
 
+class Finally {
+private:
+  std::function<void()> function;
+
+public:
+  Finally(std::function<void()> function) : function(function) {
+  }
+  virtual ~Finally() {
+    function();
+  }
+};
+
 class GlfwApp {
-protected:
-  oglplus::Context gl;
+private:
   GLFWwindow *  window{ nullptr };
   glm::uvec2    windowSize;
   glm::ivec2    windowPosition;
+
+protected:
   float         windowAspect{ 1.0f };
   float         windowAspectInverse{ 1.0f };
   float         fps{ 0.0 };
@@ -144,40 +157,48 @@ public:
   }
 
   virtual int run() {
-    preCreate();
-    createRenderingTarget();
-    onCreate();
+    try {
+      preCreate();
+      window = createRenderingTarget(windowSize, windowPosition);
+      postCreate();
 
-    if (!window) {
-      FAIL("Unable to create OpenGL window");
-    }
+      if (!window) {
+        FAIL("Unable to create OpenGL window");
+      }
 
-    initGl();
+      initGl();
+      // Ensure we shutdown the GL resources even if we throw an exception
+      Finally f([&]{
+        shutdownGl();
+      });
 
-    int framecount = 0;
-    long start = Platform::elapsedMillis();
-    while (!glfwWindowShouldClose(window)) {
-      glfwPollEvents();
-      update();
-      draw();
-      finishFrame();
-      long now = Platform::elapsedMillis();
-      ++framecount;
-      if ((now - start) >= 2000) {
-        float elapsed = (now - start) / 1000.f;
-        fps = (float)framecount / elapsed;
-        SAY("FPS: %0.2f", fps);
-        start = now;
-        framecount = 0;
+      int framecount = 0;
+      long start = Platform::elapsedMillis();
+      while (!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+        update();
+        draw();
+        finishFrame();
+        long now = Platform::elapsedMillis();
+        ++framecount;
+        if ((now - start) >= 2000) {
+          float elapsed = (now - start) / 1000.f;
+          fps = (float)framecount / elapsed;
+          SAY("FPS: %0.2f", fps);
+          start = now;
+          framecount = 0;
+        }
       }
     }
-    shutdownGl();
+    catch (std::runtime_error & err) {
+      SAY(err.what());
+    }
     return 0;
   }
 
 
 protected:
-  virtual void createRenderingTarget() = 0;
+  virtual GLFWwindow * createRenderingTarget(glm::uvec2 & outSize, glm::ivec2 & outPosition) = 0;
   virtual void draw() = 0;
 
   void preCreate() {
@@ -190,18 +211,18 @@ protected:
     ON_MAC([]{
       glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     });
-#ifdef DEBUG_BUILD
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+#ifdef DEBUG_BUILD
 #endif
   }
 
-  void onCreate()  {
+  void postCreate()  {
+    glfwMakeContextCurrent(window);
     windowAspect = aspect(windowSize);
     windowAspectInverse = 1.0f / windowAspect;
     glfwSetWindowUserPointer(window, this);
     glfwSetKeyCallback(window, KeyCallback);
     glfwSetMouseButtonCallback(window, MouseButtonCallback);
-    glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
     // Initialize the OpenGL bindings
@@ -213,13 +234,13 @@ protected:
     }
     GlUtils::clearError();
 
-#ifdef DEBUG_BUILD
+#if 1
     GL_CHECK_ERROR;
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     GL_CHECK_ERROR;
     GLuint unusedIds = 0;
     if (glDebugMessageCallback) {
-      glDebugMessageCallback(debugCallback, this);
+      glDebugMessageCallback(GlUtils::debugCallback, this);
       GL_CHECK_ERROR;
       glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE,
         0, &unusedIds, true);
@@ -227,13 +248,21 @@ protected:
 
     }
     else if (glDebugMessageCallbackARB) {
-      glDebugMessageCallbackARB(debugCallback, this);
+      glDebugMessageCallbackARB(GlUtils::debugCallback, this);
       GL_CHECK_ERROR;
       glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE,
         0, &unusedIds, true);
       GL_CHECK_ERROR;
     }
 #endif
+  }
+
+  const glm::uvec2 & getSize() const {
+    return windowSize;
+  }
+
+  const glm::ivec2 & getPosition() const {
+    return windowPosition;
   }
 
   virtual void initGl() {
@@ -282,7 +311,7 @@ protected:
 
 protected:
   virtual void viewport(const glm::ivec2 & pos, const glm::uvec2 & size) {
-    gl.Viewport(pos.x, pos.y, size.x, size.y);
+    oglplus::Context::Viewport(pos.x, pos.y, size.x, size.y);
   }
 
 private:

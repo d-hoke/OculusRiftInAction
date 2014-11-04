@@ -60,21 +60,6 @@ namespace oria {
 
 }
 
+#define SET_UNIFORM_BY_NAME(p, u, t, v) \
+  oglplus::Uniform<t>(p, u).Set(v)
 
-//#define SET_UNIFORM(p, u, t, v) \
-//    oglplus::Uniform<t>(p, Layout::Uniform::u).Set(v)
-//
-//
-//#define SET_PROJECTION(program) \
-//  SET_UNIFORM(program, Projection, mat4, Stacks::projection().top())
-//
-//#define SET_MODELVIEW(program) \
-//  SET_UNIFORM(program, ModelView, mat4, Stacks::modelview().top())
-//
-//#define SET_LIGHTS(program, lights) \
-//  SET_UNIFORM(program, LightAmbient, vec4, lights.ambient); \
-//  SET_UNIFORM(program, LightCount, int, lights.lightPositions.size()); \
-//  for(size_t  i = 0; i < lights.lightPositions.size(); ++i) { \
-//    SET_UNIFORM(program, LightPosition + i, vec3, lights.lightPositions[i]); \
-//    SET_UNIFORM(program, LightColor + i, vec4, lights.lightColors[i]); \
-//  }
