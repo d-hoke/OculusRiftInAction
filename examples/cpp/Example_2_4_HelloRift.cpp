@@ -67,9 +67,7 @@ public:
     }
 
     // The ovrHmdCap_ExtendDesktop only reliably reports on Windows currently
-    ON_WINDOWS([&]{
-      directHmdMode = (0 == (ovrHmdCap_ExtendDesktop & ovrHmd_GetEnabledCaps(hmd)));
-    });
+    directHmdMode = (0 == (ovrHmdCap_ExtendDesktop & hmd->HmdCaps));
 
     // On linux it's recommended to leave the screen in it's default portrait orientation.
     // The SDK currently allows no mechanism to test if this is the case.  I could query

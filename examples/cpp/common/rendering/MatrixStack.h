@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stack>
-
 class MatrixStack : public std::stack<glm::mat4> {
 
 public:

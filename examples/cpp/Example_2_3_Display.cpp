@@ -51,12 +51,7 @@ void createRenderingTarget() {
   nativeWindow = glfw::getNativeWindowHandle(window);
   ovrHmd_AttachToWindow(hmd, nativeWindow, nullptr, nullptr);
 
-  unsigned int enabledCaps = ovrHmd_GetEnabledCaps(hmd);
-  if (0 == (ovrHmdCap_ExtendDesktop & enabledCaps)) {
-    ON_WINDOWS([&]{
-      directMode = true;
-    });
-  }
+  directMode = (0 == ovrHmdCap_ExtendDesktop & hmd->HmdCaps);
 
   if (directMode) {
     nativeWindow = glfw::getNativeWindowHandle(window);

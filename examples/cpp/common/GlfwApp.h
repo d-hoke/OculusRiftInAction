@@ -117,19 +117,57 @@ namespace glfw {
   inline GLFWwindow * createSecondaryScreenWindow(const glm::uvec2 & size) {
     return createWindow(size, getSecondaryScreenPosition(size));
   }
+
+  inline void APIENTRY debugCallback(
+    GLenum source,
+    GLenum type,
+    GLuint id,
+    GLenum severity,
+    GLsizei length,
+    const GLchar * message,
+    void * userParam) {
+    const char * typeStr = "?";
+    switch (type) {
+    case GL_DEBUG_TYPE_ERROR:
+      typeStr = "ERROR";
+      break;
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+      typeStr = "DEPRECATED_BEHAVIOR";
+      break;
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+      typeStr = "UNDEFINED_BEHAVIOR";
+      break;
+    case GL_DEBUG_TYPE_PORTABILITY:
+      typeStr = "PORTABILITY";
+      break;
+    case GL_DEBUG_TYPE_PERFORMANCE:
+      typeStr = "PERFORMANCE";
+      break;
+    case GL_DEBUG_TYPE_OTHER:
+      typeStr = "OTHER";
+      break;
+    }
+
+    const char * severityStr = "?";
+    switch (severity) {
+    case GL_DEBUG_SEVERITY_LOW:
+      severityStr = "LOW";
+      break;
+    case GL_DEBUG_SEVERITY_MEDIUM:
+      severityStr = "MEDIUM";
+      break;
+    case GL_DEBUG_SEVERITY_HIGH:
+      severityStr = "HIGH";
+      break;
+    }
+    SAY("--- OpenGL Callback Message ---");
+    SAY("type: %s\nseverity: %-8s\nid: %d\nmsg: %s", typeStr, severityStr, id,
+      message);
+    SAY("--- OpenGL Callback Message ---");
+  }
+
 }
 
-class Finally {
-private:
-  std::function<void()> function;
-
-public:
-  Finally(std::function<void()> function) : function(function) {
-  }
-  virtual ~Finally() {
-    function();
-  }
-};
 
 class GlfwApp {
 private:
@@ -211,8 +249,8 @@ protected:
     ON_MAC([]{
       glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     });
+#ifdef DEBUG
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
-#ifdef DEBUG_BUILD
 #endif
   }
 
@@ -232,27 +270,20 @@ protected:
     if (0 != glewInit()) {
       FAIL("Failed to initialize GLEW");
     }
-    GlUtils::clearError();
+    glGetError();
 
-#if 1
-    GL_CHECK_ERROR;
+#if DEBUG
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    GL_CHECK_ERROR;
     GLuint unusedIds = 0;
     if (glDebugMessageCallback) {
-      glDebugMessageCallback(GlUtils::debugCallback, this);
-      GL_CHECK_ERROR;
+      glDebugMessageCallback(glfw::debugCallback, this);
       glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE,
         0, &unusedIds, true);
-      GL_CHECK_ERROR;
-
     }
     else if (glDebugMessageCallbackARB) {
-      glDebugMessageCallbackARB(GlUtils::debugCallback, this);
-      GL_CHECK_ERROR;
+      glDebugMessageCallbackARB(glfw::debugCallback, this);
       glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE,
         0, &unusedIds, true);
-      GL_CHECK_ERROR;
     }
 #endif
   }
@@ -266,16 +297,14 @@ protected:
   }
 
   virtual void initGl() {
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glDisable(GL_DITHER);
-    glEnable(GL_DEPTH_TEST);
-    //  query = gl::TimeQueryPtr(new gl::TimeQuery());
-    GlUtils::checkError();
+    using namespace oglplus;
+    Context::Enable(Capability::CullFace);
+    Context::Enable(Capability::DepthTest);
+    Context::Disable(Capability::Dither);
   }
 
   virtual void shutdownGl() {
-    oria::runShutdownHooks();
+    Platform::runShutdownHooks();
   }
   
   virtual void finishFrame() {

@@ -21,16 +21,6 @@
 
 #include "Config.h"
 
-#ifdef WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#if !defined(_DEBUG)
-#undef RIFT_DEBUG
-#endif
-#endif
-
-#define __STDC_FORMAT_MACROS 1
-
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -41,10 +31,10 @@
 #include <map>
 #include <memory>
 #include <sstream>
+#include <stack>
 #include <string>
 #include <unordered_map>
 
-#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -67,23 +57,7 @@ inline float aspect(const glm::vec2 & v) {
 }
 
 #include <GL/glew.h>
-
-#include <OVR_CAPI.h>
-#include <Kernel/OVR_Types.h>
-#include <OVR_CAPI_GL.h>
-#if defined(OVR_OS_WIN32)
-#define GLFW_EXPOSE_NATIVE_WIN32
-#define GLFW_EXPOSE_NATIVE_WGL
-#elif defined(OVR_OS_MAC)
-#define GLFW_EXPOSE_NATIVE_COCOA
-#define GLFW_EXPOSE_NATIVE_NSGL
-#elif defined(OVR_OS_LINUX)
-#define GLFW_EXPOSE_NATIVE_X11
-#define GLFW_EXPOSE_NATIVE_GLX
-#endif
-
 #include <GLFW/glfw3.h>
-
 // For some interaction with the Oculus SDK we'll need the native 
 // window handle
 #include <GLFW/glfw3native.h>
@@ -95,53 +69,49 @@ inline float aspect(const glm::vec2 & v) {
 #include <oglplus/bound/texture.hpp>
 #include <oglplus/bound/framebuffer.hpp>
 #include <oglplus/bound/renderbuffer.hpp>
-#include <oglplus/bound/buffer.hpp>
-#include <oglplus/shapes/cube.hpp>
-#include <oglplus/images/image.hpp>
-#include <oglplus/shapes/wicker_torus.hpp>
-#include <oglplus/shapes/sky_box.hpp>
 #include <oglplus/shapes/wrapper.hpp>
-#include <oglplus/shapes/plane.hpp>
-#include <oglplus/opt/list_init.hpp>
 #pragma warning( default : 4068 4244 4267 4065 4101)
-
 
 #include <Resources.h>
 
+class Finally {
+private:
+  std::function<void()> function;
+
+public:
+  Finally(std::function<void()> function) : function(function) {
+  }
+  virtual ~Finally() {
+    function();
+  }
+};
+
 #include "Platform.h"
-#include "Files.h"
-#include "IO.h"
 
 #include "rendering/Lights.h"
 #include "rendering/MatrixStack.h"
 #include "rendering/State.h"
-#include "rendering/Mesh.h"
 #include "rendering/Colors.h"
 #include "rendering/Vectors.h"
 
 #include "opengl/Constants.h"
-#include "opengl/Hooks.h"
 
 #include "opengl/Framebuffer.h"
-#include "opengl/Geometry.h"
 #include "opengl/Textures.h"
 #include "opengl/Shaders.h"
-#include "opengl/CtmMesh.h"
 
 #include "opengl/Utils.h"
 
 #include "GlUtils.h"
 #include "GlfwApp.h"
 
+
+
+#include <OVR_CAPI.h>
+#include <OVR_CAPI_GL.h>
+
 #include "OvrUtils.h"
 #include "RiftApp.h"
-
-//#include <GlDebug.h>
-//#include <GlStacks.h>
-//#include <GlQuery.h>
-//#include <GlShaders.h>
-//#include <GlGeometry.h>
-//#include <GlLighting.h>
 
 #ifndef PI
 #define PI 3.14159265f
@@ -177,16 +147,3 @@ inline float aspect(const glm::vec2 & v) {
         return -1; \
     }
 
-//
-//
-//#include "Font.h"
-//#include "Files.h"
-//
-//#include "GlMesh.h"
-//#include "GlUtils.h"
-//#include "GlfwApp.h"
-//
-//#include "Interaction.h"
-//
-//#include "OvrUtils.h"
-//#include "OpenCV.h"

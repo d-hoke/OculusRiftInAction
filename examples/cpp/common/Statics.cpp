@@ -174,7 +174,8 @@ const glm::vec3 Colors::yellowGreen(0.603922, 0.803922, 0.196078);
 const glm::vec3 Vectors::X_AXIS = glm::vec3(1.0f, 0.0f, 0.0f);
 const glm::vec3 Vectors::Y_AXIS = glm::vec3(0.0f, 1.0f, 0.0f);
 const glm::vec3 Vectors::Z_AXIS = glm::vec3(0.0f, 0.0f, 1.0f);
-const glm::vec3 Vectors::ORIGIN = glm::vec3(0.0f, 0.0f, 0.0f);
-const glm::vec3 Vectors::ONE = glm::vec3(1.0f, 1.0f, 1.0f);
-const glm::vec3 Vectors::UP = glm::vec3(0.0f, 1.0f, 0.0f);
+const glm::vec3 Vectors::ZERO = glm::vec3(0);
+const glm::vec3 Vectors::ONE = glm::vec3(1);
+const glm::vec3 & Vectors::ORIGIN = Vectors::ZERO;
+const glm::vec3 & Vectors::UP = Vectors::Y_AXIS;
 

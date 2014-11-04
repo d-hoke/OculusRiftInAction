@@ -21,7 +21,7 @@ namespace oria {
     static ProgramMap programs;
     static bool registeredShutdown = false;
     if (!registeredShutdown) {
-      addShudownHook([&]{
+      Platform::addShutdownHook([&]{
         programs.clear();
       });
       registeredShutdown = true;
@@ -50,7 +50,7 @@ namespace oria {
         programs[key] = result;
       }
       catch (ProgramBuildError & err) {
-        OVR_UNUSED(err);
+        err;
         SAY_ERR((const char*)err.Message);
         return nullptr;
       }

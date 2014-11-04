@@ -123,3 +123,21 @@ std::string Platform::replaceAll(const std::string & in, const std::string & fro
   }
   return str;
 }
+
+
+typedef std::vector<std::function<void()>> VecLambda;
+VecLambda & getShutdownHooks() {
+  static VecLambda hooks;
+  return hooks;
+}
+
+void Platform::addShutdownHook(std::function<void()> f) {
+  getShutdownHooks().push_back(f);
+}
+
+void Platform::runShutdownHooks() {
+  VecLambda & hooks = getShutdownHooks();
+  std::for_each(hooks.begin(), hooks.end(), [&](std::function<void()> f){
+    f();
+  });
+}

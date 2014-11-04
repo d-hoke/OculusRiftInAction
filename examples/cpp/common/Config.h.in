@@ -31,3 +31,49 @@
 // 3D mouse support
 #cmakedefine HAVE_SPNAV @HAVE_SPNAV@
 
+
+#if (defined(WIN64) || defined(WIN32))
+#define OS_WIN
+#elif (defined(__APPLE__))
+#define OS_OSX
+#else
+#define OS_LINUX
+#endif
+
+// Windows has a non-standard main function prototype
+#ifdef OS_WIN
+#define MAIN_DECL int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+#else
+#define MAIN_DECL int main(int argc, char ** argv)
+#endif
+
+#if defined(OS_WIN)
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_EXPOSE_NATIVE_WGL
+#define OVR_OS_WIN32
+#define ON_WINDOWS(runnable) runnable()
+#define ON_MAC(runnable)
+#define ON_LINUX(runnable)
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN 
+#include <Windows.h>
+#undef NOMINMAX
+#elif defined(OS_OSX)
+#define GLFW_EXPOSE_NATIVE_COCOA
+#define GLFW_EXPOSE_NATIVE_NSGL
+#define OVR_OS_MAC
+#define ON_WINDOWS(runnable) 
+#define ON_MAC(runnable) runnable()
+#define ON_LINUX(runnable)
+#elif defined(OS_LINUX)
+#define GLFW_EXPOSE_NATIVE_X11
+#define GLFW_EXPOSE_NATIVE_GLX
+#define OVR_OS_LINUX
+#define ON_WINDOWS(runnable) 
+#define ON_MAC(runnable) 
+#define ON_LINUX(runnable) runnable()
+#endif
+
+
+#define __STDC_FORMAT_MACROS 1
+#define GLM_FORCE_RADIANS
