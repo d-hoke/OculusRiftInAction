@@ -23,7 +23,6 @@
 #include <sstream>
 #include <cassert>
 #include <stdexcept>
-#include <filesystem>
 #include <chrono>
 
 using namespace std;
@@ -40,9 +39,11 @@ string Files::read(const string & filename) {
 }
 
 time_t Files::modified(const string & filename) {
-  return tr2::sys::last_write_time(tr2::sys::path(filename));
+  return 0;
+//  return tr2::sys::last_write_time(tr2::sys::path(filename));
 }
 
 bool Files::exists(const string & filename) {
-  return tr2::sys::exists(tr2::sys::path(filename));
+  return false;
+//  return tr2::sys::exists(tr2::sys::path(filename));
 }
