@@ -117,7 +117,7 @@ public:
       eyeTextureHeader.RenderViewport.Pos.y = 0;
       eyeTextureHeader.API = ovrRenderAPI_OpenGL;
 
-      eyeArgs.framebuffer = FramebufferWrapperPtr(new FramebufferWrapper());
+      eyeArgs.framebuffer = FramebufferWrapperPtr(new oria::FramebufferWrapper());
       eyeArgs.framebuffer->init(ovr::toGlm(eyeTextureHeader.TextureSize));
       ((ovrGLTexture&)textures[eye]).OGL.TexId = oglplus::GetName(eyeArgs.framebuffer->color);
     });

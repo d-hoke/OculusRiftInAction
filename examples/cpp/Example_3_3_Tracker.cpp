@@ -11,18 +11,11 @@ class SensorFusionExample : public GlfwApp {
 public:
 
   SensorFusionExample() {
-    hmd = ovrHmd_Create(0);
-    if (!hmd) {
-      FAIL("Unable to open HMD");
-    }
-    
-    if (!ovrHmd_ConfigureTracking(hmd, ovrTrackingCap_Orientation, 0)) {
-      FAIL("Unable to locate Rift sensor device");
-    }
   }
 
   virtual ~SensorFusionExample() {
     ovrHmd_Destroy(hmd);
+    ovr_Shutdown();
   }
 
   virtual GLFWwindow * createRenderingTarget(glm::uvec2 & outSize, glm::ivec2 & outPosition) {
@@ -41,6 +34,17 @@ public:
   void initGl() {
     GlfwApp::initGl();
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+
+    ovr_Initialize();
+    hmd = ovrHmd_Create(0);
+    if (!hmd) {
+      FAIL("Unable to open HMD");
+    }
+
+    if (!ovrHmd_ConfigureTracking(hmd, ovrTrackingCap_Orientation, 0)) {
+      FAIL("Unable to locate Rift sensor device");
+    }
+
   }
 
   virtual void onKey(int key, int scancode, int action, int mods) {
@@ -125,5 +129,5 @@ public:
   }
 };
 
-RUN_OVR_APP(SensorFusionExample)
+RUN_APP(SensorFusionExample)
 

@@ -343,6 +343,13 @@ protected:
     oglplus::Context::Viewport(pos.x, pos.y, size.x, size.y);
   }
 
+  virtual void renderStringAt(const std::string & string, float x, float y) {
+    renderStringAt(string, glm::vec2(x, y));
+  }
+
+  virtual void renderStringAt(const std::string & string, const glm::vec2 & position);
+
+
 private:
 
   static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -358,6 +365,8 @@ private:
   static void ErrorCallback(int error, const char* description) {
     FAIL(description);
   }
+
+
 
   virtual void screenshot() {
 //#ifdef HAVE_OPENCV

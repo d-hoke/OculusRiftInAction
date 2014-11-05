@@ -1,4 +1,5 @@
 #include "Common.h"
+#include <oglplus/shapes/plane.hpp>
 
 Resource SCENE_IMAGES_DK1[2] = {
   Resource::IMAGES_TUSCANY_UNDISTORTED_LEFT_DK1_PNG,
@@ -13,8 +14,8 @@ Resource SCENE_IMAGES_DK2[2] = {
 class UndistortedExample : public RiftGlfwApp {
 
 protected:
-  oria::TexturePtr textures[2];
-  oria::ProgramPtr program;
+  TexturePtr textures[2];
+  ProgramPtr program;
   ShapeWrapperPtr shape;
 
 public:
@@ -26,11 +27,15 @@ public:
     RiftGlfwApp::initGl();
     Context::Disable(Capability::Blend);
     Context::Disable(Capability::DepthTest);
+    Context::Disable(Capability::CullFace);
 
     program = oria::loadProgram(
         Resource::SHADERS_TEXTURED_VS,
         Resource::SHADERS_TEXTURED_FS);
-    shape = ShapeWrapperPtr(new shapes::ShapeWrapper(List("Position")("TexCoord").Get(), shapes::Plane(), *program));
+    shape = ShapeWrapperPtr(new shapes::ShapeWrapper({ "Position", "TexCoord" }, shapes::Plane(
+        Vec3f(1, 0, 0),
+        Vec3f(0, 1, 0)
+      ), *program));
 
     Resource * sceneImages = SCENE_IMAGES_DK2;
     if (hmd->Type == ovrHmd_DK1) {
@@ -53,7 +58,9 @@ public:
 
 
   void draw() {
-    oglplus::Context::Clear().ColorBuffer();
+    using namespace oglplus;
+    DefaultFramebuffer().Bind(Framebuffer::Target::Draw);
+    Context::Clear().ColorBuffer();
     for_each_eye([&](ovrEyeType eye) {
       renderEye(eye);
     });
@@ -61,6 +68,7 @@ public:
 
   void renderEye(ovrEyeType eye) {
     viewport(eye);
+//    Stacks::modelview().identity().rotate(HALF_PI, Vectors::X_AXIS);
     textures[eye]->Bind(oglplus::Texture::Target::_2D);
     oria::renderGeometry(shape, program);
   }

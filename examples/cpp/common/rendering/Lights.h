@@ -19,7 +19,7 @@ public:
   // Singleton class
   Lights()
       : ambient(glm::vec4(0.2, 0.2, 0.2, 1.0)) {
-    addLight();
+    addLight(vec3(1, 0.5, 2.0));
   }
 
   void addLight(const glm::vec3 & position = vec3(1),

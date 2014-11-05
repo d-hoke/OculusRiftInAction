@@ -1,5 +1,8 @@
 #include "Common.h"
 
+#include "Font.h"
+#pragma warning( disable : 4068 4244 4267 4065 4101)
+#include <openctmpp.h>
 #include <oglplus/bound/buffer.hpp>
 #include <oglplus/shapes/cube.hpp>
 #include <oglplus/images/image.hpp>
@@ -7,8 +10,7 @@
 #include <oglplus/shapes/sky_box.hpp>
 #include <oglplus/shapes/plane.hpp>
 #include <oglplus/opt/list_init.hpp>
-
-#include <openctmpp.h>
+#include <oglplus/shapes/obj_mesh.hpp>
 
 namespace oglplus {
   namespace shapes {
@@ -288,9 +290,94 @@ namespace oglplus {
   } // shapes
 } // oglplus
 
+#pragma warning( default : 4068 4244 4267 4065 4101)
 
 
 namespace oria {
+
+  std::wstring toUtf16(const std::string & text) {
+    //    wstring_convert<codecvt_utf8_utf16<wchar_t>> converter;
+    std::wstring wide(text.begin(), text.end()); //= converter.from_bytes(narrow.c_str());
+    return wide;
+  }
+
+  Text::FontPtr getFont(Resource fontName) {
+    static std::map<Resource, Text::FontPtr> fonts;
+    if (fonts.find(fontName) == fonts.end()) {
+      std::string fontData = Platform::getResourceData(fontName);
+      Text::FontPtr result(new Text::Font());
+      result->read((const void*)fontData.data(), fontData.size());
+      fonts[fontName] = result;
+    }
+    return fonts[fontName];
+  }
+
+  Text::FontPtr getDefaultFont() {
+    return getFont(Resource::FONTS_INCONSOLATA_MEDIUM_SDFF);
+  }
+
+
+  void renderString(const std::string & cstr, glm::vec2 & cursor,
+    float fontSize, Resource fontResource) {
+    getFont(fontResource)->renderString(toUtf16(cstr), cursor, fontSize);
+  }
+
+  void renderParagraph(const std::string & str) {
+    glm::vec2 cursor;
+    Text::FontPtr font = getFont(Resource::FONTS_INCONSOLATA_MEDIUM_SDFF);
+    rectf bounds;
+    std::wstring wstr = toUtf16(str);
+    for (size_t i = 0; i < wstr.length(); ++i) {
+      uint16_t wchar = wstr.at(i);
+      rectf letterBound = font->getBounds(wchar);
+      //    extendLeft(bounds, letterBound);
+      SAY("foo");
+    }
+    renderString(str, cursor);
+  }
+
+  void renderString(const std::string & str, glm::vec3 & cursor3d,
+    float fontSize, Resource fontResource) {
+    glm::vec4 target = glm::vec4(cursor3d, 0);
+    target = Stacks::projection().top() * Stacks::modelview().top() * target;
+    glm::vec2 newCursor(target.x, target.y);
+    renderString(str, newCursor, fontSize, fontResource);
+  }
+
+  void bindLights(ProgramPtr & program) {
+    using namespace oglplus;
+    Lights & lights = Stacks::lights();
+    int count = (int)lights.lightPositions.size();
+    Uniform<vec4>(*program, "Ambient").Set(lights.ambient);
+    Uniform<int>(*program, "LightCount").Set(count);
+    if (count) {
+      Uniform<Vec4f>(*program, "LightColor[0]").SetValues(count, (Vec4f*)&lights.lightColors.at(0).r);
+      Uniform<Vec4f>(*program, "LightPosition[0]").SetValues(count, (Vec4f*)&lights.lightPositions.at(0).x);
+    }
+  }
+
+  void renderGeometry(ShapeWrapperPtr & shape, ProgramPtr & program, std::initializer_list<std::function<void()>> list) {
+    program->Use();
+
+    Mat4Uniform(*program, "ModelView").Set(Stacks::modelview().top());
+    Mat4Uniform(*program, "Projection").Set(Stacks::projection().top());
+
+    std::for_each(list.begin(), list.end(), [&](const std::function<void()>&f){
+      f();
+    });
+
+    shape->Use();
+    shape->Draw();
+
+    oglplus::NoProgram().Bind();
+    oglplus::NoVertexArray().Bind();
+  }
+
+  void renderGeometry(ShapeWrapperPtr & shape, ProgramPtr & program) {
+    renderGeometry(shape, program, {});
+  }
+
+
   void renderCube(const glm::vec3 & color) {
     using namespace oglplus;
 
@@ -433,6 +520,40 @@ namespace oria {
         oria::bindLights(program);
       } });
     });
+  }
+
+  void renderArtificialHorizon(float alpha) {
+    using namespace oglplus;
+    static ProgramPtr program;
+    static ShapeWrapperPtr shape;
+    static std::vector<Vec4f> materials = {
+        Vec4f(0.351366, 0.665379, 0.800000, 1),
+        Vec4f(0.640000, 0.179600, 0.000000, 1),
+        Vec4f(0.000000, 0.000000, 0.000000, 1),
+        Vec4f(0.171229, 0.171229, 0.171229, 1),
+        Vec4f(0.640000, 0.640000, 0.640000, 1)
+    };
+
+    if (!program) {
+      Platform::addShutdownHook([&]{
+        program.reset();
+        shape.reset();
+      });
+
+      program = loadProgram(Resource::SHADERS_LITMATERIALS_VS, Resource::SHADERS_LITCOLORED_FS);
+      shapes::ObjMesh mesh(Platform::getResourceStream(Resource::MESHES_ARTIFICIAL_HORIZON_OBJ));
+      shape = ShapeWrapperPtr(new shapes::ShapeWrapper({ "Position", "Normal", "Material" }, mesh, *program));
+      Uniform<Vec4f>(*program, "Materials[0]").Set(materials);
+    }
+
+    auto & mv = Stacks::modelview();
+    mv.withPush([&]{
+      renderGeometry(shape, program, { [&]{
+        Uniform<float>(*program, "ForceAlpha").Set(alpha);
+        oria::bindLights(program);
+      } });
+    });
+
   }
 }
 

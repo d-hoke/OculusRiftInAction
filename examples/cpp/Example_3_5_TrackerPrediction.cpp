@@ -1,5 +1,8 @@
 #include "Common.h"
 
+
+typedef std::shared_ptr<oglplus::Buffer> BufferPtr;
+
 class SensorFusionPredictionExample : public GlfwApp {
   ovrHmd hmd;
   float predictionValue{ 0.030 };
@@ -11,19 +14,12 @@ class SensorFusionPredictionExample : public GlfwApp {
 public:
 
   SensorFusionPredictionExample() {
-    hmd = ovrHmd_Create(0);
-    if (!hmd) {
-      FAIL("Unable to open HMD");
-    }
-
-    if (!ovrHmd_ConfigureTracking(hmd, ovrTrackingCap_Orientation, 0)) {
-      FAIL("Unable to locate Rift sensor device");
-    }
   }
 
   virtual ~SensorFusionPredictionExample() {
     ovrHmd_Destroy(hmd);
     hmd = nullptr;
+    ovr_Shutdown();
   }
 
 
@@ -51,6 +47,17 @@ public:
     Stacks::modelview().top() = glm::lookAt(
       glm::vec3(0.0f, 0.0f, 3.5f),
       Vectors::ORIGIN, Vectors::UP);
+
+    ovr_Initialize();
+    hmd = ovrHmd_Create(0);
+    if (!hmd) {
+      FAIL("Unable to open HMD");
+    }
+
+    if (!ovrHmd_ConfigureTracking(hmd, ovrTrackingCap_Orientation, 0)) {
+      FAIL("Unable to locate Rift sensor device");
+    }
+
   }
 
   virtual void onKey(int key, int scancode, int action, int mods) {
@@ -91,15 +98,15 @@ public:
     MatrixStack & mv = Stacks::modelview();
     mv.withPush([&]{
       mv.transform(predicted);
-      GlUtils::renderArtificialHorizon();
+      oria::renderArtificialHorizon();
     });
     mv.withPush([&]{
       mv.transform(actual).scale(1.25f);
-      GlUtils::renderArtificialHorizon(0.3f);
+      oria::renderArtificialHorizon(0.3f);
     });
   }
 
 };
 
-RUN_OVR_APP(SensorFusionPredictionExample)
+RUN_APP(SensorFusionPredictionExample)
 

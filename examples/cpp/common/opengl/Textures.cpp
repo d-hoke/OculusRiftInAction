@@ -6,25 +6,27 @@
 #include <oglplus/images/png.hpp>
 #endif
 
-typedef std::shared_ptr<oglplus::images::Image> ImagePtr;
-typedef std::map<Resource, oria::TexturePtr> TextureMap;
+typedef std::map<Resource, TexturePtr> TextureMap;
 typedef TextureMap::iterator TextureMapItr;
 
 namespace oria {
 
-  ImagePtr loadImage(Resource resource) {
+  ImagePtr loadPngImage(std::vector<uint8_t> & data) {
     using namespace oglplus;
 #ifdef HAVE_OPENCV
-    std::vector<uint8_t> data = Platform::getResourceByteVector(resource);
     cv::Mat image = cv::imdecode(data, CV_LOAD_IMAGE_COLOR);
     cv::flip(image, image, 0);
     ImagePtr result(new images::Image(image.cols, image.rows, 1, 3, image.data,
       PixelDataFormat::BGR, PixelDataInternalFormat::RGBA8));
     return result;
 #else
-    std::stringstream stream = Platform::getResourceStream(resource);
+    std::stringstream stream(std::string((const char*)&data[0], data.size()));
     return ImagePtr(new images::PNGImage(stream));
 #endif
+  }
+
+  ImagePtr loadImage(Resource resource) {
+    return loadPngImage(Platform::getResourceByteVector(resource));
   }
 
   TextureMap & getTextureMap() {
@@ -54,21 +56,38 @@ namespace oria {
     return itr->second;
   }
 
+  TexturePtr load2dTextureFromPngData(std::vector<uint8_t> & data) {
+    using namespace oglplus;
+    TexturePtr texture(new Texture());
+    Context::Bound(TextureTarget::_2D, *texture)
+      .MagFilter(TextureMagFilter::Linear)
+      .MinFilter(TextureMinFilter::Linear);
+    ImagePtr image = loadPngImage(data);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    Texture::Image2D(TextureTarget::_2D, *image);
+    return texture;
+  }
+
   TexturePtr load2dTexture(Resource resource) {
     return loadOrPopulate(getTextureMap(), resource, [&]{
-      using namespace oglplus;
-      TexturePtr texture(new Texture());
-      Context::Bound(TextureTarget::_2D, *texture)
-        .MagFilter(TextureMagFilter::Linear)
-        .MinFilter(TextureMinFilter::Linear);
-      ImagePtr image = loadImage(resource);
-      glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-      Texture::Image2D(
-        TextureTarget::_2D,
-        *image
-      );
-      return texture;
+      uvec2 size;
+      return load2dTexture(resource, size);
     });
+  }
+
+
+  TexturePtr load2dTexture(Resource resource, uvec2 & outSize) {
+    using namespace oglplus;
+    TexturePtr texture(new Texture());
+    Context::Bound(TextureTarget::_2D, *texture)
+      .MagFilter(TextureMagFilter::Linear)
+      .MinFilter(TextureMinFilter::Linear);
+    ImagePtr image = loadImage(resource);
+    outSize.x = image->Width();
+    outSize.y = image->Height();
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    Texture::Image2D(TextureTarget::_2D, *image);
+    return texture;
   }
 
   TexturePtr loadCubemapTexture(Resource firstResource) {

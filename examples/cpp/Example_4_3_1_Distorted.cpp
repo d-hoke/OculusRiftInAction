@@ -12,7 +12,7 @@ Resource SCENE_IMAGES_DK2[2] = {
 
 class DistortedExample : public RiftGlfwApp {
 protected:
-  gl::Texture2dPtr sceneTextures[2];
+  TexturePtr sceneTextures[2];
   ovrTexture eyeTextures[2];
 
 public:
@@ -27,8 +27,7 @@ public:
 
     for_each_eye([&](ovrEyeType eye){
       glm::uvec2 textureSize;
-      GlUtils::getImageAsTexture(sceneTextures[eye],
-        sceneImages[eye], textureSize);
+      sceneTextures[eye] = oria::load2dTexture(sceneImages[eye], textureSize);
 
       memset(eyeTextures + eye, 0,
         sizeof(eyeTextures[eye]));
@@ -43,13 +42,13 @@ public:
       eyeTextureHeader.API = ovrRenderAPI_OpenGL;
 
       ((ovrGLTextureData&)eyeTextures[eye]).TexId =
-        sceneTextures[eye]->texture;
+        oglplus::GetName(*sceneTextures[eye]);
     });
 
     ovrRenderAPIConfig config;
     memset(&config, 0, sizeof(config));
     config.Header.API = ovrRenderAPI_OpenGL;
-    config.Header.RTSize = ovr::fromGlm(windowSize);
+    config.Header.RTSize = ovr::fromGlm(getSize());
     config.Header.Multisample = 1;
 #if defined(OVR_OS_WIN32)
     ((ovrGLConfigData&)config).Window = 0;
