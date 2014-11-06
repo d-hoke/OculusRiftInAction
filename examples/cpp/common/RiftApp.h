@@ -58,129 +58,16 @@ protected:
 
 public:
   RiftGlfwApp(bool fullscreen = false) : fullscreen(fullscreen) {
-
   }
-
-
-  virtual GLFWwindow * createRenderingTarget(glm::uvec2 & outSize, glm::ivec2 & outPosition) {
-    GLFWwindow * window = nullptr;
-    bool directHmdMode = false;
-
-    outPosition = glm::ivec2(hmd->WindowsPos.x, hmd->WindowsPos.y);
-    outSize = glm::uvec2(hmd->Resolution.w, hmd->Resolution.h);
-
-    // The ovrHmdCap_ExtendDesktop only reliably reports on Windows currently
-    directHmdMode = (0 == (ovrHmdCap_ExtendDesktop & hmd->HmdCaps));
-
-    // On linux it's recommended to leave the screen in it's default portrait orientation.
-    // The SDK currently allows no mechanism to test if this is the case.  I could query
-    // GLFW for the current resolution of the Rift, but that sounds too much like actual
-    // work.
-    ON_LINUX([&]{
-      std::swap(outSize.x, outSize.y);
-    });
-
-    if (directHmdMode) {
-      // In direct mode, try to put the output window on a secondary screen
-      // (for easier debugging, assuming your dev environment is on the primary)
-      window = glfw::createSecondaryScreenWindow(outSize);
-    } else {
-      // If we're creating a desktop window, we should strip off any window decorations
-      // which might change the location of the rendered contents relative to the lenses.
-      //
-      // Another alternative would be to create the window in fullscreen mode, on
-      // platforms that support such a thing.
-      glfwWindowHint(GLFW_DECORATED, 0);
-      window = glfw::createWindow(outSize, outPosition);
-    }
-
-    // If we're in direct mode, attach to the window
-    if (directHmdMode) {
-      void * nativeWindowHandle = nullptr;
-      ON_WINDOWS([&]{ nativeWindowHandle = (void*)glfwGetWin32Window(window); });
-      ON_LINUX([&]{ nativeWindowHandle = (void*)glfwGetX11Window(window); });
-      ON_MAC([&]{ nativeWindowHandle = (void*)glfwGetCocoaWindow(window); });
-      if (nullptr != nativeWindowHandle) {
-        ovrHmd_AttachToWindow(hmd, nativeWindowHandle, nullptr, nullptr);
-      }
-    }
-    return window;
-  }
-
-  //virtual GLFWwindow * createRenderingTarget(glm::uvec2 & outSize, glm::ivec2 & outPosition) {
-  //  // Attempt to find the Rift monitor.
-  //  hmdMonitor = glfw::getMonitorAtPosition(hmdDesktopPosition);
-  //  if (!hmdMonitor) {
-  //    SAY_ERR("No Rift display found.  Looking for alternate display");
-  //    fakeRiftMonitor = true;
-  //    // Try to find the best monitor that isn't the primary display.
-  //    GLFWmonitor * primaryMonitor = glfwGetPrimaryMonitor();
-  //    int monitorCount;
-  //    GLFWmonitor ** monitors = glfwGetMonitors(&monitorCount);
-  //    for (int i = 0; i < monitorCount; ++i) {
-  //      GLFWmonitor * monitor = monitors[i];
-  //      if (monitor != primaryMonitor) {
-  //        hmdMonitor = monitors[i];
-  //        break;
-  //      }
-  //    }
-  //    // No joy, use the primary monitor
-  //    if (!hmdMonitor) {
-  //      hmdMonitor = primaryMonitor;
-  //    }
-  //  }
-
-  //  if (!hmdMonitor) {
-  //    FAIL("Somehow failed to find any output display ");
-  //  }
-
-  //  const GLFWvidmode * videoMode = glfwGetVideoMode(hmdMonitor);
-  //  if (fakeRiftMonitor || fullscreen) {
-  //    // if we've got a real rift monitor, OR we're doing fullscreen with
-  //    // a fake Rift, use the resolution of the monitor
-  //    outSize = glm::uvec2(videoMode->width, videoMode->height);
-  //  } else {
-  //    // If we've got a fake rift and we're NOT fullscreen,
-  //    // use the DK1 resolution
-  //    outSize = hmdNativeResolution;
-  //  }
-
-  //  // if we're using a fake rift
-  //  if (fakeRiftMonitor) {
-  //    int fakex, fakey;
-  //    // Reset the desktop display's position to the target monitor
-  //    glfwGetMonitorPos(hmdMonitor, &fakex, &fakey);
-  //    hmdDesktopPosition = glm::ivec2(fakex, fakey);
-  //    // on a large display, try to center the fake Rift display.
-  //    if (videoMode->width > (int)outSize.x) {
-  //      hmdDesktopPosition.x += (videoMode->width - outSize.x) / 2;
-  //    }
-  //    if (videoMode->height > (int)outSize.y) {
-  //      hmdDesktopPosition.y += (videoMode->height - outSize.y) / 2;
-  //    }
-  //  }
-  //  GLFWwindow * window = nullptr;
-  //  if (fullscreen) {
-  //    // Fullscreen apps should use the native resolution of the Rift
-  //    outSize = hmdNativeResolution;
-  //    outPosition = glm::ivec2(0);
-  //    window = glfw::createFullscreenWindow(outSize, hmdMonitor);
-  //  } else {
-  //    glfwWindowHint(GLFW_DECORATED, 0);
-  //    // FIXME
-  //    outSize = hmdNativeResolution;
-  //    outPosition = hmdDesktopPosition;
-  //    window = glfw::createWindow(outSize, outPosition);
-  //    if (glfwGetWindowAttrib(window, GLFW_DECORATED)) {
-  //      FAIL("Unable to create undecorated window");
-  //    }
-  //  }
-  //  return window;
-  //}
 
   virtual ~RiftGlfwApp() {
   }
 
+  virtual GLFWwindow * createRenderingTarget(glm::uvec2 & outSize, glm::ivec2 & outPosition) {
+    return ovr::createRiftRenderingWindow(hmd, outSize, outPosition);
+  }
+
+  using GlfwApp::viewport;
   virtual void viewport(ovrEyeType eye) {
     const glm::uvec2 & windowSize = getSize();
     glm::uvec2 viewportPosition(eye == ovrEye_Left ? 0 : windowSize.x / 2, 0);
@@ -223,6 +110,7 @@ private:
   ovrEyeType currentEye;
 
 protected:
+  using RiftGlfwApp::renderStringAt;
   void renderStringAt(const std::string & str, float x, float y, float size = 18.0f);
   virtual void initGl();
   virtual void finishFrame();

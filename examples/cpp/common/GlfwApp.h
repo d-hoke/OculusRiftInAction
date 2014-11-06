@@ -108,7 +108,6 @@ namespace glfw {
   }
 
   inline GLFWwindow * createFullscreenWindow(const glm::uvec2 & size, GLFWmonitor * targetMonitor) {
-    const GLFWvidmode * currentMode = glfwGetVideoMode(targetMonitor);
     GLFWwindow * window = glfwCreateWindow(size.x, size.y, "glfw", targetMonitor, nullptr);
     assert(window != 0);
     return window;

@@ -1,3 +1,22 @@
+/************************************************************************************
+ 
+ Authors     :   Bradley Austin Davis <bdavis@saintandreas.org>
+ Copyright   :   Copyright Brad Davis. All Rights reserved.
+ 
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ 
+ http://www.apache.org/licenses/LICENSE-2.0
+ 
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ 
+ ************************************************************************************/
+
 #include "Common.h"
 
 #include "Font.h"
@@ -541,7 +560,8 @@ namespace oria {
       });
 
       program = loadProgram(Resource::SHADERS_LITMATERIALS_VS, Resource::SHADERS_LITCOLORED_FS);
-      shapes::ObjMesh mesh(Platform::getResourceStream(Resource::MESHES_ARTIFICIAL_HORIZON_OBJ));
+      std::stringstream stream = Platform::getResourceStream(Resource::MESHES_ARTIFICIAL_HORIZON_OBJ);
+      shapes::ObjMesh mesh(stream);
       shape = ShapeWrapperPtr(new shapes::ShapeWrapper({ "Position", "Normal", "Material" }, mesh, *program));
       Uniform<Vec4f>(*program, "Materials[0]").Set(materials);
     }
@@ -555,5 +575,27 @@ namespace oria {
     });
 
   }
+  
+  void renderCubeScene(float ipd, float eyeHeight) {
+    oria::renderSkybox(Resource::IMAGES_SKY_CITY_XNEG_PNG);
+    oria::renderFloor();
+    
+    // Scale the size of the cube to the distance between the eyes
+    MatrixStack & mv = Stacks::modelview();
+    
+    mv.withPush([&]{
+      mv.translate(glm::vec3(0, eyeHeight, 0)).scale(glm::vec3(ipd));
+      oria::renderColorCube();
+    });
+    
+    mv.withPush([&]{
+      mv.translate(glm::vec3(0, 0, ipd * -5.0));
+      
+      oglplus::Context::Disable(oglplus::Capability::CullFace);
+      oria::renderManikin();
+    });
+    renderColorCube();
+  }
+
 }
 

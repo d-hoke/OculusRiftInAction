@@ -1,3 +1,22 @@
+/************************************************************************************
+ 
+ Authors     :   Bradley Austin Davis <bdavis@saintandreas.org>
+ Copyright   :   Copyright Brad Davis. All Rights reserved.
+ 
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ 
+ http://www.apache.org/licenses/LICENSE-2.0
+ 
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ 
+ ************************************************************************************/
+
 #include "Common.h"
 
 #ifdef HAVE_OPENCV
@@ -26,7 +45,8 @@ namespace oria {
   }
 
   ImagePtr loadImage(Resource resource) {
-    return loadPngImage(Platform::getResourceByteVector(resource));
+    std::vector<uint8_t> data = Platform::getResourceByteVector(resource);
+    return loadPngImage(data);
   }
 
   TextureMap & getTextureMap() {
@@ -63,6 +83,7 @@ namespace oria {
       .MagFilter(TextureMagFilter::Linear)
       .MinFilter(TextureMinFilter::Linear);
     ImagePtr image = loadPngImage(data);
+    // FIXME detect alignment properly, test on both OpenCV and LibPNG
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     Texture::Image2D(TextureTarget::_2D, *image);
     return texture;
@@ -85,6 +106,7 @@ namespace oria {
     ImagePtr image = loadImage(resource);
     outSize.x = image->Width();
     outSize.y = image->Height();
+    // FIXME detect alignment properly, test on both OpenCV and LibPNG
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     Texture::Image2D(TextureTarget::_2D, *image);
     return texture;

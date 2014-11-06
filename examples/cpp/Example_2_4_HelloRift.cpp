@@ -58,16 +58,26 @@ public:
   virtual GLFWwindow * createRenderingTarget(glm::uvec2 & outSize, glm::ivec2 & outPosition) {
     GLFWwindow * window = nullptr;
     bool directHmdMode = false;
-
+    
     outPosition = glm::ivec2(hmd->WindowsPos.x, hmd->WindowsPos.y);
     outSize = glm::uvec2(hmd->Resolution.w, hmd->Resolution.h);
-    if (debugDevice) {
-      //      windowPosition.x = 0;
-      //      windowPosition.y = -1080;
-    }
-
+    
     // The ovrHmdCap_ExtendDesktop only reliably reports on Windows currently
-    directHmdMode = (0 == (ovrHmdCap_ExtendDesktop & hmd->HmdCaps));
+    ON_WINDOWS([&]{
+      directHmdMode = (0 == (ovrHmdCap_ExtendDesktop & hmd->HmdCaps));
+    });
+
+    // In direct HMD mode, we always use the native resolution, because the
+    // user has no control over it.
+    // In legacy mode, we should be using the current resolution of the Rift
+    // (unless we're creating a 'fullscreen' window)
+    if (!directHmdMode) {
+      GLFWmonitor * monitor = glfw::getMonitorAtPosition(outPosition);
+      if (nullptr != monitor) {
+        auto mode = glfwGetVideoMode(monitor);
+        outSize = glm::uvec2(mode->width, mode->height);
+      }
+    }
 
     // On linux it's recommended to leave the screen in it's default portrait orientation.
     // The SDK currently allows no mechanism to test if this is the case.  I could query
@@ -93,19 +103,18 @@ public:
 
     // If we're in direct mode, attach to the window
     if (directHmdMode) {
-      void * nativeWindowHandle = nullptr;
-      ON_WINDOWS([&]{ nativeWindowHandle = (void*)glfwGetWin32Window(window); });
-      ON_LINUX([&]{ nativeWindowHandle = (void*)glfwGetX11Window(window); });
-      ON_MAC([&]{ nativeWindowHandle = (void*)glfwGetCocoaWindow(window); });
+      void * nativeWindowHandle = glfw::getNativeWindowHandle(window);
       if (nullptr != nativeWindowHandle) {
         ovrHmd_AttachToWindow(hmd, nativeWindowHandle, nullptr, nullptr);
       }
     }
+
     return window;
   }
 
   void initGl() {
     GlfwApp::initGl();
+    
     ovrFovPort eyeFovPorts[2];
     for_each_eye([&](ovrEyeType eye){
       EyeArgs & eyeArgs = perEyeArgs[eye];
@@ -125,18 +134,14 @@ public:
     ovrGLConfig cfg;
     memset(&cfg, 0, sizeof(ovrGLConfig));
     cfg.OGL.Header.API = ovrRenderAPI_OpenGL;
+    cfg.OGL.Header.Multisample = 1;
     cfg.OGL.Header.RTSize = ovr::fromGlm(getSize());
-    // FIXME Doesn't work as expected
+
+    // FIXME Doesn't work as expected in OpenGL
     //if (0 == (ovrHmd_GetEnabledCaps(hmd) & ovrHmdCap_ExtendDesktop)) {
     //  cfg.OGL.Header.RTSize.w /= 4;
     //  cfg.OGL.Header.RTSize.h /= 4;
     //}
-
-    cfg.OGL.Header.Multisample = 1;
-
-    ON_WINDOWS([&]{
-      cfg.OGL.Window = 0;
-    });
 
     ON_LINUX([&]{
       cfg.OGL.Disp = glfwGetX11Display();
@@ -155,6 +160,9 @@ public:
     ovrEyeRenderDesc              eyeRenderDescs[2];
     int configResult = ovrHmd_ConfigureRendering(hmd, &cfg.Config,
       distortionCaps, eyeFovPorts, eyeRenderDescs);
+    if (!configResult) {
+      FAIL("Unable to configure SDK based distortion rendering");
+    }
 
     for_each_eye([&](ovrEyeType eye){
       EyeArgs & eyeArgs = perEyeArgs[eye];

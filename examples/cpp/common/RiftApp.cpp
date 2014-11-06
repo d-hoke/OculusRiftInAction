@@ -1,3 +1,22 @@
+/************************************************************************************
+ 
+ Authors     :   Bradley Austin Davis <bdavis@saintandreas.org>
+ Copyright   :   Copyright Brad Davis. All Rights reserved.
+ 
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ 
+ http://www.apache.org/licenses/LICENSE-2.0
+ 
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ 
+ ************************************************************************************/
+
 #include "Common.h"
 #include "RiftApp.h"
 #include <OVR_CAPI_GL.h>
@@ -27,11 +46,9 @@ RiftApp::RiftApp(bool fullscreen) :  RiftGlfwApp(fullscreen) {
 }
 
 RiftApp::~RiftApp() {
-  //ovrHmd_StopSensor(hmd);
 }
 
 void RiftApp::finishFrame() {
-
 }
 
 void RiftApp::initGl() {
@@ -46,33 +63,25 @@ void RiftApp::initGl() {
   cfg.OGL.Header.RTSize = ovr::fromGlm(getSize());
   cfg.OGL.Header.Multisample = 1;
 
-  int distortionCaps = 0 
+  int distortionCaps =
+    ovrDistortionCap_Chromatic
     | ovrDistortionCap_Vignette
-    | ovrDistortionCap_Chromatic
-    | ovrDistortionCap_TimeWarp
-    ;
+    | ovrDistortionCap_TimeWarp;
 
+  ON_LINUX([&]{
+    distortionCaps |= ovrDistortionCap_LinuxDevFullscreen;
+  });
+  
   int configResult = ovrHmd_ConfigureRendering(hmd, &cfg.Config,
     distortionCaps, hmd->MaxEyeFov, eyeRenderDescs);
+  assert(configResult);
 
-#ifdef _DEBUG
-//  ovrhmd_EnableHSWDisplaySDKRender(hmd, false);
-#endif
-  float    orthoDistance = 0.8f; // 2D is 0.8 meter from camera
   for_each_eye([&](ovrEyeType eye){
     const ovrEyeRenderDesc & erd = eyeRenderDescs[eye];
     ovrMatrix4f ovrPerspectiveProjection = ovrMatrix4f_Projection(erd.Fov, 0.01f, 100000.0f, true);
     projections[eye] = ovr::toGlm(ovrPerspectiveProjection);
-    glm::vec2 orthoScale = glm::vec2(1.0f) / ovr::toGlm(erd.PixelsPerTanAngleAtCenter);
     eyeOffsets[eye] = erd.HmdToEyeViewOffset;
   });
-
-  ///////////////////////////////////////////////////////////////////////////
-  // Initialize OpenGL settings and variables
-  // Anti-alias lines (hopefully)
-  glEnable(GL_BLEND);
-  glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-  glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 
   // Allocate the frameBuffer that will hold the scene, and then be
   // re-rendered to the screen with distortion
@@ -171,16 +180,16 @@ void RiftApp::draw() {
 #endif
 }
 
-//void RiftApp::renderStringAt(const std::string & str, float x, float y, float size) {
-//  MatrixStack & mv = Stacks::modelview();
-//  MatrixStack & pr = Stacks::projection();
-//  Stacks::with_push(mv, pr, [&]{
-//    mv.identity();
-//    pr.top() = 1.0f * glm::ortho(
-//      -1.0f, 1.0f,
-//      -windowAspectInverse * 2.0f, windowAspectInverse * 2.0f,
-//      -100.0f, 100.0f);
-//    glm::vec2 cursor(x, windowAspectInverse * y);
-//    GlUtils::renderString(str, cursor, size);
-//  });
-//}
+void RiftApp::renderStringAt(const std::string & str, float x, float y, float size) {
+  MatrixStack & mv = Stacks::modelview();
+  MatrixStack & pr = Stacks::projection();
+  Stacks::withPush(mv, pr, [&]{
+    mv.identity();
+    pr.top() = 1.0f * glm::ortho(
+      -1.0f, 1.0f,
+      -windowAspectInverse * 2.0f, windowAspectInverse * 2.0f,
+      -100.0f, 100.0f);
+    glm::vec2 cursor(x, windowAspectInverse * y);
+    oria::renderString(str, cursor, size);
+  });
+}
