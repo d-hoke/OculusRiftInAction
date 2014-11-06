@@ -62,9 +62,11 @@ inline float aspect(const glm::vec2 & v) {
 // window handle
 #include <GLFW/glfw3native.h>
 
+#pragma warning(disable : 4068)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-#pragma warning( disable : 4068 4244 4267 4065 4101)
+
+#pragma warning( disable : 4244 4267 4065 4101)
 #include <oglplus/config/gl.hpp>
 #include <oglplus/all.hpp>
 #include <oglplus/interop/glm.hpp>
@@ -72,7 +74,7 @@ inline float aspect(const glm::vec2 & v) {
 #include <oglplus/bound/framebuffer.hpp>
 #include <oglplus/bound/renderbuffer.hpp>
 #include <oglplus/shapes/wrapper.hpp>
-#pragma warning( default : 4068 4244 4267 4065 4101)
+#pragma warning( default : 4244 4267 4065 4101)
 #pragma clang diagnostic pop
 
 #include <Resources.h>

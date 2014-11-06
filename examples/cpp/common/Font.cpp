@@ -175,8 +175,8 @@ void Font::read(const void * data, size_t size) {
   indexBuffer->Bind(Buffer::Target::ElementArray);
   Buffer::Data(Buffer::Target::ElementArray, indexData);
 
-  size_t stride = sizeof(TextureVertex);
-  size_t offset = offsetof(TextureVertex, tex);
+  GLsizei stride = (GLsizei)sizeof(TextureVertex);
+  void* offset = (void*)offsetof(TextureVertex, tex);
 
   VertexArrayAttrib(oria::Layout::Attribute::Position)
     .Pointer(3, DataType::Float, false, stride, 0)

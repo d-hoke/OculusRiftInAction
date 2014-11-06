@@ -116,63 +116,14 @@ namespace glfw {
   inline GLFWwindow * createSecondaryScreenWindow(const glm::uvec2 & size) {
     return createWindow(size, getSecondaryScreenPosition(size));
   }
-
-  inline void APIENTRY debugCallback(
-    GLenum source,
-    GLenum type,
-    GLuint id,
-    GLenum severity,
-    GLsizei length,
-    const GLchar * message,
-    void * userParam) {
-    const char * typeStr = "?";
-    switch (type) {
-    case GL_DEBUG_TYPE_ERROR:
-      typeStr = "ERROR";
-      break;
-    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-      typeStr = "DEPRECATED_BEHAVIOR";
-      break;
-    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-      typeStr = "UNDEFINED_BEHAVIOR";
-      break;
-    case GL_DEBUG_TYPE_PORTABILITY:
-      typeStr = "PORTABILITY";
-      break;
-    case GL_DEBUG_TYPE_PERFORMANCE:
-      typeStr = "PERFORMANCE";
-      break;
-    case GL_DEBUG_TYPE_OTHER:
-      typeStr = "OTHER";
-      break;
-    }
-
-    const char * severityStr = "?";
-    switch (severity) {
-    case GL_DEBUG_SEVERITY_LOW:
-      severityStr = "LOW";
-      break;
-    case GL_DEBUG_SEVERITY_MEDIUM:
-      severityStr = "MEDIUM";
-      break;
-    case GL_DEBUG_SEVERITY_HIGH:
-      severityStr = "HIGH";
-      break;
-    }
-    SAY("--- OpenGL Callback Message ---");
-    SAY("type: %s\nseverity: %-8s\nid: %d\nmsg: %s", typeStr, severityStr, id,
-      message);
-    SAY("--- OpenGL Callback Message ---");
-  }
-
 }
-
 
 class GlfwApp {
 private:
   GLFWwindow *  window{ nullptr };
   glm::uvec2    windowSize;
   glm::ivec2    windowPosition;
+  int           frame{ 0 };
 
 protected:
   float         windowAspect{ 1.0f };
@@ -213,6 +164,7 @@ public:
       long start = Platform::elapsedMillis();
       while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+        ++frame;
         update();
         draw();
         finishFrame();
@@ -237,6 +189,10 @@ public:
 protected:
   virtual GLFWwindow * createRenderingTarget(glm::uvec2 & outSize, glm::ivec2 & outPosition) = 0;
   virtual void draw() = 0;
+
+  int getFrame() const {
+    return this->frame;
+  }
 
   void preCreate() {
     glfwWindowHint(GLFW_DEPTH_BITS, 16);

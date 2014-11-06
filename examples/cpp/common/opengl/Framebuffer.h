@@ -50,6 +50,14 @@ namespace oria {
         .AttachRenderbuffer(FramebufferAttachment::Depth, depth)
         .Complete();
     }
+
+    void Bind(oglplus::Framebuffer::Target target = oglplus::Framebuffer::Target::Draw) {
+      fbo.Bind(target);
+    }
+
+    static void Unbind(oglplus::Framebuffer::Target target = oglplus::Framebuffer::Target::Draw) {
+      oglplus::DefaultFramebuffer().Bind(target);
+    }
   };
 
 }

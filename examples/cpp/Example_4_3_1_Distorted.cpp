@@ -74,11 +74,14 @@ public:
   }
 
   void draw() {
-    static int frameIndex = 0;
-    static ovrPosef poses[2];
-    glClear(GL_COLOR_BUFFER_BIT);
-    ovrHmd_BeginFrame(hmd, frameIndex++);
-    ovrHmd_EndFrame(hmd, poses, eyeTextures);
+    // Bug in SDK prevents direct mode from activating unless I call this
+    static ovrPosef eyePoses[2];
+    {
+      static ovrVector3f eyeOffsets[2];
+      ovrHmd_GetEyePoses(hmd, getFrame(), eyeOffsets, eyePoses, nullptr);
+    }
+    ovrHmd_BeginFrame(hmd, getFrame());
+    ovrHmd_EndFrame(hmd, eyePoses, eyeTextures);
   }
 };
 

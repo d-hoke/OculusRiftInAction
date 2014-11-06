@@ -10,6 +10,12 @@ public:
   }
 
   void draw() {
+      {
+        static ovrVector3f eyeOffsets[2];
+        static ovrPosef eyePoses[2];
+//        ovrHmd_GetEyePoses(hmd, getFrame(), eyeOffsets, eyePoses, nullptr);
+      }
+
     glm::uvec2 eyeSize(hmd->Resolution.w / 2, hmd->Resolution.h);
     glm::ivec2 position = glm::ivec2(0, 0);
     glm::vec4 color = glm::vec4(1, 0, 0, 1);

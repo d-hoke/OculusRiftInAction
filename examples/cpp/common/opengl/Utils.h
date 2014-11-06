@@ -48,4 +48,13 @@ namespace oria {
       float fontSize = 12.0f, Resource font =
           Resource::FONTS_INCONSOLATA_MEDIUM_SDFF);
 
+
+  void APIENTRY debugCallback(
+    GLenum source,
+    GLenum type,
+    GLuint id,
+    GLenum severity,
+    GLsizei length,
+    const GLchar * message,
+    void * userParam);
 }

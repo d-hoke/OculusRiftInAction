@@ -1,5 +1,4 @@
 #include "Common.h"
-#include "CubeScene.h"
 
 static const glm::uvec2 WINDOW_SIZE(1280, 800);
 static const glm::ivec2 WINDOW_POS(100, 100);
@@ -14,15 +13,20 @@ struct PerEyeArg {
   glm::mat4 modelviewOffset;
 };
 
-class CubeScene_Stereo : public CubeScene {
+class CubeScene_Stereo : public GlfwApp {
   PerEyeArg eyes[2];
 
 public:
   CubeScene_Stereo() {
     Stacks::projection().top() = glm::perspective(
-        PI / 2.0f, EYE_ASPECT, 0.01f, 100.0f);
+      PI / 2.0f, EYE_ASPECT, 0.01f, 100.0f);
 
-    glm::vec3 offset(ipd / 2.0f, 0, 0);
+    Stacks::modelview().top() = glm::lookAt(
+      vec3(0, OVR_DEFAULT_EYE_HEIGHT, 5 * OVR_DEFAULT_IPD),
+      vec3(0, OVR_DEFAULT_EYE_HEIGHT, 0),
+      Vectors::UP);
+
+    glm::vec3 offset(OVR_DEFAULT_IPD / 2.0f, 0, 0);
     eyes[ovrEye_Left] = {
       glm::uvec2(0, 0),
       glm::translate(glm::mat4(), offset)
@@ -33,24 +37,25 @@ public:
     };
   }
 
-  virtual void createRenderingTarget() {
-    createWindow(WINDOW_SIZE, WINDOW_POS);
+  virtual GLFWwindow * createRenderingTarget(glm::uvec2 & outSize, glm::ivec2 & outPosition) {
+    outSize = WINDOW_SIZE;
+    outPosition = WINDOW_POS;
+    return glfw::createWindow(outSize, outPosition);
   }
 
   virtual void draw() {
-    glClear(GL_DEPTH_BUFFER_BIT);
+    oglplus::Context::Clear().ColorBuffer().DepthBuffer();
     MatrixStack & mv = Stacks::modelview();
 
-    for (int i = 0; i < ovrEye_Count; ++i) {
-      ovrEyeType eye = hmd->EyeRenderOrder[i];
-      PerEyeArg & eyeArgs = eyes[eye];
-      gl::viewport(eyeArgs.viewportPosition, EYE_SIZE);
-      Stacks::with_push(mv, [&]{
+    for (int i = 0; i < 2; ++i) {
+      PerEyeArg & eyeArgs = eyes[i];
+      viewport(eyeArgs.viewportPosition, EYE_SIZE);
+      Stacks::withPush(mv, [&]{
         mv.preMultiply(eyeArgs.modelviewOffset);
-        drawCubeScene();
+        oria::renderCubeScene(OVR_DEFAULT_IPD, OVR_DEFAULT_EYE_HEIGHT);
       });
     }
   }
 };
 
-RUN_OVR_APP(CubeScene_Stereo);
+RUN_APP(CubeScene_Stereo);

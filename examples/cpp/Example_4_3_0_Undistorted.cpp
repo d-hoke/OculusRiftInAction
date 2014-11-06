@@ -59,6 +59,11 @@ public:
 
   void draw() {
     using namespace oglplus;
+    static ovrPosef eyePoses[2];
+    {
+      static ovrVector3f eyeOffsets[2];
+      ovrHmd_GetEyePoses(hmd, getFrame(), eyeOffsets, eyePoses, nullptr);
+    }
     DefaultFramebuffer().Bind(Framebuffer::Target::Draw);
     Context::Clear().ColorBuffer();
     for_each_eye([&](ovrEyeType eye) {
