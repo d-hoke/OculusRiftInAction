@@ -18,8 +18,32 @@
  ************************************************************************************/
 
 #include "Common.h"
+#include "Files.h"
 
 namespace oria {
+
+  void compileProgram(ProgramPtr & result, std::string vs, std::string fs) {
+    using namespace oglplus;
+    try {
+      result = ProgramPtr(new Program());
+      // attach the shaders to the program
+      result->AttachShader(
+        VertexShader()
+        .Source(GLSLSource(vs))
+        .Compile()
+        );
+      result->AttachShader(
+        FragmentShader()
+        .Source(GLSLSource(fs))
+        .Compile()
+        );
+      result->Link();
+    } catch (ProgramBuildError & err) {
+      SAY_ERR((const char*)err.Message);
+      result.reset();
+    }
+  }
+
 
   ProgramPtr loadProgram(Resource vs, Resource fs) {
     typedef std::unordered_map<std::string, ProgramPtr> ProgramMap;
@@ -36,32 +60,21 @@ namespace oria {
     std::string key = Resources::getResourcePath(vs) + ":" +
       Resources::getResourcePath(fs);
     if (!programs.count(key)) {
-      using namespace oglplus;
-      ProgramPtr result = ProgramPtr(new Program());
-      try {
-        std::string vsSource = Platform::getResourceData(vs);
-        std::string fsSource = Platform::getResourceData(fs);
-        // attach the shaders to the program
-        result->AttachShader(
-          VertexShader()
-          .Source(GLSLSource(vsSource))
-          .Compile()
-          );
-        result->AttachShader(
-          FragmentShader()
-          .Source(GLSLSource(Platform::getResourceData(fs)))
-          .Compile()
-          );
-        result->Link();
-//        programs[key] = result;
-        return result;
-      }
-      catch (ProgramBuildError & err) {
-        SAY_ERR((const char*)err.Message);
-        return nullptr;
-      }
+      ProgramPtr result;
+      compileProgram(result,
+        Platform::getResourceData(vs),
+        Platform::getResourceData(fs));
+      return result;
     }
     return programs[key];
+  }
+
+  ProgramPtr loadProgram(const std::string & vsFile, const std::string & fsFile) {
+    ProgramPtr result;
+    compileProgram(result,
+      Files::read(vsFile),
+      Files::read(fsFile));
+    return result;
   }
 
 }
