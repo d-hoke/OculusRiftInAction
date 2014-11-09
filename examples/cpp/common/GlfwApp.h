@@ -251,8 +251,14 @@ protected:
     return windowPosition;
   }
 
+  GLFWwindow * getWindow() {
+    return window;
+  }
+
   virtual void initGl() {
     using namespace oglplus;
+    DefaultFramebuffer().Bind(Framebuffer::Target::Draw);
+    DefaultFramebuffer().Bind(Framebuffer::Target::Read);
     Context::Enable(Capability::CullFace);
     Context::Enable(Capability::DepthTest);
     Context::Disable(Capability::Dither);

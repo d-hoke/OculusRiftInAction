@@ -86,11 +86,11 @@ void RiftApp::initGl() {
   // Allocate the frameBuffer that will hold the scene, and then be
   // re-rendered to the screen with distortion
   glm::uvec2 frameBufferSize = ovr::toGlm(eyeTextures[0].Header.TextureSize);
-  //for_each_eye([&](ovrEyeType eye) {
-  //  frameBuffers[eye].init(frameBufferSize);
-  //  ((ovrGLTexture&)(eyeTextures[eye])).OGL.TexId = 
-  //    frameBuffers[eye].color->texture;
-  //});
+  for_each_eye([&](ovrEyeType eye) {
+    eyeFramebuffers[eye].init(frameBufferSize);
+    ((ovrGLTexture&)(eyeTextures[eye])).OGL.TexId = 
+        oglplus::GetName(*eyeFramebuffers[eye].color);
+  });
 }
 
 void RiftApp::onKey(int key, int scancode, int action, int mods) {
@@ -122,12 +122,11 @@ void RiftApp::applyEyePoseAndOffset(const glm::mat4 & eyePose, const glm::vec3 &
 }
 
 void RiftApp::draw() {
-  static int frameIndex = 0;
-  ovrHmd_BeginFrame(hmd, frameIndex++);
+  ovrHmd_BeginFrame(hmd, getFrame());
   MatrixStack & mv = Stacks::modelview();
   MatrixStack & pr = Stacks::projection();
   
-  ovrHmd_GetEyePoses(hmd, frameIndex, eyeOffsets, eyePoses, nullptr);
+  ovrHmd_GetEyePoses(hmd, getFrame(), eyeOffsets, eyePoses, nullptr);
   for (int i = 0; i < 2; ++i) {
     ovrEyeType eye = currentEye = hmd->EyeRenderOrder[i];
     Stacks::withPush(pr, mv, [&]{
@@ -146,16 +145,14 @@ void RiftApp::draw() {
         applyEyePoseAndOffset(eyePose, glm::vec3(0));
       }
 
-      //// Render the scene to an offscreen buffer
-      //frameBuffers[eye].activate();
-      ////glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-      ////glEnable(GL_DEPTH_TEST);
-      //renderScene();
-      //frameBuffers[eye].deactivate();
-
-      //ovrHmd_EndEyeRender(hmd, eye, renderPose, &(eyeTextures[eye].Texture));
+      // Render the scene to an offscreen buffer
+      eyeFramebuffers[eye].Bind();
+      renderScene();
     });
   }
+  // Restore the default framebuffer
+  oglplus::DefaultFramebuffer().Bind(oglplus::Framebuffer::Target::Draw);
+
   postDraw();
 #if 1
   ovrHmd_EndFrame(hmd, eyePoses, eyeTextures);

@@ -19,47 +19,64 @@
 
 #pragma once
 
-namespace oria {
+typedef std::shared_ptr<oglplus::Framebuffer> FramebufferPtr;
+typedef std::shared_ptr<oglplus::Renderbuffer> RenderbufferPtr;
 
-  // A wrapper for constructing and using a
-  struct FramebufferWrapper {
-    oglplus::Framebuffer   fbo;
-    oglplus::Texture       color;
-    oglplus::Renderbuffer  depth;
+// A wrapper for constructing and using a
+struct FramebufferWrapper {
+  glm::uvec2       size;
+  FramebufferPtr   fbo;
+  TexturePtr       color;
+  RenderbufferPtr  depth;
 
-    void init(const glm::uvec2 & size) {
-      using namespace oglplus;
-      Context::Bound(Texture::Target::_2D, color)
-        .MinFilter(TextureMinFilter::Linear)
-        .MagFilter(TextureMagFilter::Linear)
-        .WrapS(TextureWrap::ClampToEdge)
-        .WrapT(TextureWrap::ClampToEdge)
-        .Image2D(
-        0, PixelDataInternalFormat::RGBA8,
-        size.x, size.y,
-        0, PixelDataFormat::RGB, PixelDataType::UnsignedByte, nullptr
-        );
+  FramebufferWrapper() {
+  }
 
-      Context::Bound(Renderbuffer::Target::Renderbuffer, depth)
-        .Storage(
-            PixelDataInternalFormat::DepthComponent,
-            size.x, size.y);
+  FramebufferWrapper(const glm::uvec2 & size) {
+    init(size);
+  }
 
-      Context::Bound(Framebuffer::Target::Draw, fbo)
-        .AttachTexture(FramebufferAttachment::Color, color, 0)
-        .AttachRenderbuffer(FramebufferAttachment::Depth, depth)
-        .Complete();
-    }
+  void init(const glm::uvec2 & size) {
+    using namespace oglplus;
+    this->size = size;
+    color = TexturePtr(new Texture());
+    depth = RenderbufferPtr(new Renderbuffer());
+    fbo = FramebufferPtr(new Framebuffer());
+    Platform::addShutdownHook([&]{
+      color.reset();
+      depth.reset();
+      fbo.reset();
+    });
 
-    void Bind(oglplus::Framebuffer::Target target = oglplus::Framebuffer::Target::Draw) {
-      fbo.Bind(target);
-    }
 
-    static void Unbind(oglplus::Framebuffer::Target target = oglplus::Framebuffer::Target::Draw) {
-      oglplus::DefaultFramebuffer().Bind(target);
-    }
-  };
+    Context::Bound(Texture::Target::_2D, *color)
+      .MinFilter(TextureMinFilter::Linear)
+      .MagFilter(TextureMagFilter::Linear)
+      .WrapS(TextureWrap::ClampToEdge)
+      .WrapT(TextureWrap::ClampToEdge)
+      .Image2D(
+      0, PixelDataInternalFormat::RGBA8,
+      size.x, size.y,
+      0, PixelDataFormat::RGB, PixelDataType::UnsignedByte, nullptr
+      );
 
-}
+    Context::Bound(Renderbuffer::Target::Renderbuffer, *depth)
+      .Storage(
+          PixelDataInternalFormat::DepthComponent,
+          size.x, size.y);
 
-typedef std::shared_ptr<oria::FramebufferWrapper> FramebufferWrapperPtr;
+    Context::Bound(Framebuffer::Target::Draw, *fbo)
+      .AttachTexture(FramebufferAttachment::Color, *color, 0)
+      .AttachRenderbuffer(FramebufferAttachment::Depth, *depth)
+      .Complete();
+  }
+
+  void Bind(oglplus::Framebuffer::Target target = oglplus::Framebuffer::Target::Draw) {
+    fbo->Bind(target);
+    oglplus::Context::Viewport(0, 0, size.x, size.y);
+  }
+
+  static void Unbind(oglplus::Framebuffer::Target target = oglplus::Framebuffer::Target::Draw) {
+    oglplus::DefaultFramebuffer().Bind(target);
+  }
+};

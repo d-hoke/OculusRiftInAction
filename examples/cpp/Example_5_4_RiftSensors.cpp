@@ -1,8 +1,7 @@
 #include "Common.h"
 
 class CubeScene_RiftSensors : public RiftGlfwApp {
-  int frameIndex{ 0 };
-  FramebufferWrapperPtr  eyeFramebuffers[2];
+  FramebufferWrapper  eyeFramebuffers[2];
   ovrTexture eyeTextures[2];
   ovrVector3f eyeOffsets[2];
   glm::mat4 eyeProjections[2];
@@ -31,7 +30,6 @@ public:
 
     int distortionCaps =
       ovrDistortionCap_Chromatic |
-      ovrDistortionCap_TimeWarp |
       ovrDistortionCap_Vignette;
     ovrEyeRenderDesc eyeRenderDescs[2];
     int configResult = ovrHmd_ConfigureRendering(hmd, &cfg,
@@ -40,8 +38,7 @@ public:
     for_each_eye([&](ovrEyeType eye){
       ovrFovPort fov = hmd->DefaultEyeFov[eye];
       ovrSizei texSize = ovrHmd_GetFovTextureSize(hmd, eye, fov, 1.0f);
-      eyeFramebuffers[eye] = FramebufferWrapperPtr(new oria::FramebufferWrapper());
-      eyeFramebuffers[eye]->init(ovr::toGlm(texSize));
+      eyeFramebuffers[eye].init(ovr::toGlm(texSize));
 
       ovrTextureHeader & textureHeader = eyeTextures[eye].Header;
       textureHeader.API = ovrRenderAPI_OpenGL;
@@ -49,7 +46,7 @@ public:
       textureHeader.RenderViewport.Size = texSize;
       textureHeader.RenderViewport.Pos.x = 0;
       textureHeader.RenderViewport.Pos.y = 0;
-      ((ovrGLTexture&)eyeTextures[eye]).OGL.TexId = oglplus::GetName(eyeFramebuffers[eye]->color);
+      ((ovrGLTexture&)eyeTextures[eye]).OGL.TexId = oglplus::GetName(*eyeFramebuffers[eye].color);
 
       eyeOffsets[eye] = eyeRenderDescs[eye].HmdToEyeViewOffset;
 
@@ -62,21 +59,17 @@ public:
   }
 
   virtual void draw() {
-    ++frameIndex;
     ovrPosef eyePoses[2];
     // Bug in SDK prevents direct mode from activating unless I call this
-    ovrHmd_GetEyePoses(hmd, frameIndex, eyeOffsets, eyePoses, nullptr);
+    ovrHmd_GetEyePoses(hmd, getFrame(), eyeOffsets, eyePoses, nullptr);
 
-    ovrHmd_BeginFrame(hmd, frameIndex);
+    ovrHmd_BeginFrame(hmd, getFrame());
     MatrixStack & mv = Stacks::modelview();
     for (int i = 0; i < ovrEye_Count; ++i) {
       ovrEyeType eye = hmd->EyeRenderOrder[i];
       Stacks::projection().top() = eyeProjections[eye];
 
-      eyeFramebuffers[eye]->fbo.Bind(oglplus::Framebuffer::Target::Draw);
-      const ovrRecti & vp = eyeTextures[eye].Header.RenderViewport;
-      oglplus::Context::Viewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
-
+      eyeFramebuffers[eye].Bind();
       oglplus::Context::Clear().DepthBuffer();
       Stacks::withPush(mv, [&]{
         mv.preMultiply(glm::inverse(ovr::toGlm(eyePoses[eye])));

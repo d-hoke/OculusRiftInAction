@@ -60,6 +60,17 @@ inline float aspect(const glm::vec2 & v) {
 #include <GLFW/glfw3.h>
 // For some interaction with the Oculus SDK we'll need the native 
 // window handle
+
+#if defined(OS_WIN)
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_EXPOSE_NATIVE_WGL
+#elif defined(OS_OSX)
+#define GLFW_EXPOSE_NATIVE_COCOA
+#define GLFW_EXPOSE_NATIVE_NSGL
+#elif defined(OS_LINUX)
+#define GLFW_EXPOSE_NATIVE_X11
+#define GLFW_EXPOSE_NATIVE_GLX
+#endif
 #include <GLFW/glfw3native.h>
 
 #pragma warning(disable : 4068)
@@ -102,14 +113,23 @@ public:
 
 #include "opengl/Constants.h"
 
-#include "opengl/Framebuffer.h"
 #include "opengl/Textures.h"
 #include "opengl/Shaders.h"
+#include "opengl/Framebuffer.h"
 
 #include "opengl/Utils.h"
 
 #include "GlfwApp.h"
+#include "Interaction.h"
 
+
+#if defined(OS_WIN)
+#define OVR_OS_WIN32
+#elif defined(OS_OSX)
+#define OVR_OS_MAC
+#elif defined(OS_LINUX)
+#define OVR_OS_LINUX
+#endif
 
 #include <OVR_CAPI.h>
 #include <OVR_CAPI_GL.h>

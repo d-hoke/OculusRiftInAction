@@ -36,41 +36,44 @@ http://oculusriftinaction.com
 //  OVR_OS_WIN32, OVR_OS_MAC, OVR_OS_LINUX (and others)
 //
 
-#include <Kernel/OVR_Types.h>
-
-#define FAIL(X) throw std::runtime_error(X)
-
-#if defined(OVR_OS_WIN32)
-// Not really needed but it prevents a macro redifition warning later
-#include <Windows.h>
-#define ON_WINDOWS(runnable) runnable()
-#define NOT_ON_WINDOWS(runnable)
+#if (defined(WIN64) || defined(WIN32))
+#define OS_WIN
+#elif (defined(__APPLE__))
+#define OS_OSX
 #else
-#define ON_WINDOWS(runnable)
-#define NOT_ON_WINDOWS(runnable) runnable()
+#define OS_LINUX
 #endif
 
-#if defined(OVR_OS_MAC)
-#define ON_MAC(runnable) runnable()
-#define NOT_ON_MAC(runnable)
-#else
-#define ON_MAC(runnable)
-#define NOT_ON_MAC(runnable) runnable()
-#endif
-
-#if defined(OVR_OS_LINUX)
-#define ON_LINUX(runnable) runnable()
-#define NOT_ON_LINUX(runnable)
-#else
-#define ON_LINUX(runnable)
-#define NOT_ON_LINUX(runnable) runnable()
-#endif
-
-#ifdef OVR_OS_WIN32
+// Windows has a non-standard main function prototype
+#ifdef OS_WIN
 #define MAIN_DECL int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 #else
 #define MAIN_DECL int main(int argc, char ** argv)
 #endif
+
+#if defined(OS_WIN)
+#define ON_WINDOWS(runnable) runnable()
+#define ON_MAC(runnable)
+#define ON_LINUX(runnable)
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN 
+#include <Windows.h>
+#undef NOMINMAX
+#elif defined(OS_OSX)
+#define ON_WINDOWS(runnable) 
+#define ON_MAC(runnable) runnable()
+#define ON_LINUX(runnable)
+#elif defined(OS_LINUX)
+#define ON_WINDOWS(runnable) 
+#define ON_MAC(runnable) 
+#define ON_LINUX(runnable) runnable()
+#endif
+
+
+#define __STDC_FORMAT_MACROS 1
+#define GLM_FORCE_RADIANS
+
+#define FAIL(X) throw std::runtime_error(X)
 
 #ifdef OVR_OS_LINUX
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -412,7 +415,44 @@ namespace glfw {
   inline GLFWwindow * createSecondaryScreenWindow(const uvec2 & size) {
     return createWindow(size, glfw::getSecondaryScreenPosition(size));
   }
+
 }
+
+
+// For interaction with the Rift, on some platforms we require
+// native window handles, so we need to define some symbols and
+// include a special header to allow us to get them from GLFW
+
+#if defined(OS_WIN)
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_EXPOSE_NATIVE_WGL
+#elif defined(OS_OSX)
+#define GLFW_EXPOSE_NATIVE_COCOA
+#define GLFW_EXPOSE_NATIVE_NSGL
+#elif defined(OS_LINUX)
+#define GLFW_EXPOSE_NATIVE_X11
+#define GLFW_EXPOSE_NATIVE_GLX
+#endif
+
+#include <GLFW/glfw3native.h>
+
+namespace glfw {
+
+  inline void * getNativeWindowHandle(GLFWwindow * window) {
+    void * nativeWindowHandle = nullptr;
+    ON_WINDOWS([&]{
+      nativeWindowHandle = (void*)glfwGetWin32Window(window);
+    });
+    ON_LINUX([&]{
+      nativeWindowHandle = (void*)glfwGetX11Window(window);
+    });
+    ON_MAC([&]{
+      nativeWindowHandle = (void*)glfwGetCocoaWindow(window);
+    });
+    return nativeWindowHandle;
+  }
+}
+
 
 // A class to encapsulate using GLFW to handle input and render a scene
 class GlfwApp {
@@ -552,28 +592,6 @@ private:
   }
 };
 
-//////////////////////////////////////////////////////////////////////
-//
-// For interaction with the Rift, on some platforms we require
-// native window handles, so we need to define some symbols and
-// include a special header to allow us to get them from GLFW
-//
-
-
-#if defined(OVR_OS_WIN32)
-#define GLFW_EXPOSE_NATIVE_WIN32
-#define GLFW_EXPOSE_NATIVE_WGL
-#elif defined(OVR_OS_MAC)
-#define GLFW_EXPOSE_NATIVE_COCOA
-#define GLFW_EXPOSE_NATIVE_NSGL
-#elif defined(OVR_OS_LINUX)
-#define GLFW_EXPOSE_NATIVE_X11
-#define GLFW_EXPOSE_NATIVE_GLX
-#endif
-
-// For some interaction with the Oculus SDK we'll need the native
-// window handle
-#include <GLFW/glfw3native.h>
 
 
 //////////////////////////////////////////////////////////////////////
@@ -581,6 +599,18 @@ private:
 // The Oculus VR C API provides access to information about the HMD
 // and SDK based distortion.
 //
+
+// The oculus SDK requires it's own macros to distinguish between 
+// operating systems, which is required to setup the platform specific
+// values, like window handles
+#if defined(OS_WIN)
+#define OVR_OS_WIN32
+#elif defined(OS_OSX)
+#define OVR_OS_MAC
+#elif defined(OS_LINUX)
+#define OVR_OS_LIUNX
+#endif
+
 #include <OVR_CAPI_GL.h>
 
 namespace ovr {
@@ -714,44 +744,44 @@ public:
   }
 };
 
-/**
-* A class that takes care of the basic duties of putting an OpenGL
-* window on the desktop in the correct position so that it's visible
-* on the Rift headset.
-*/
-class RiftGlfwApp : public GlfwApp, public RiftManagerApp {
+namespace ovr {
 
-public:
-  RiftGlfwApp() {
-  }
-
-  virtual ~RiftGlfwApp() {
-  }
-
-  virtual GLFWwindow * createRenderingTarget(uvec2 & size, ivec2 & pos) {
+  inline GLFWwindow * createRiftRenderingWindow(ovrHmd hmd, glm::uvec2 & outSize, glm::ivec2 & outPosition) {
+    GLFWwindow * window = nullptr;
     bool directHmdMode = false;
+
+    outPosition = glm::ivec2(hmd->WindowsPos.x, hmd->WindowsPos.y);
+    outSize = glm::uvec2(hmd->Resolution.w, hmd->Resolution.h);
 
     // The ovrHmdCap_ExtendDesktop only reliably reports on Windows currently
     ON_WINDOWS([&]{
-      directHmdMode = (0 == (ovrHmdCap_ExtendDesktop & ovrHmd_GetEnabledCaps(hmd)));
+      directHmdMode = (0 == (ovrHmdCap_ExtendDesktop & hmd->HmdCaps));
     });
+
+    // In direct HMD mode, we always use the native resolution, because the
+    // user has no control over it.
+    // In legacy mode, we should be using the current resolution of the Rift
+    // (unless we're creating a 'fullscreen' window)
+    if (!directHmdMode) {
+      GLFWmonitor * monitor = glfw::getMonitorAtPosition(outPosition);
+      if (nullptr != monitor) {
+        auto mode = glfwGetVideoMode(monitor);
+        outSize = glm::uvec2(mode->width, mode->height);
+      }
+    }
 
     // On linux it's recommended to leave the screen in it's default portrait orientation.
     // The SDK currently allows no mechanism to test if this is the case.  I could query
     // GLFW for the current resolution of the Rift, but that sounds too much like actual
     // work.
     ON_LINUX([&]{
-      std::swap(hmdNativeResolution.x, hmdNativeResolution.y);
+      std::swap(outSize.x, outSize.y);
     });
 
-    size = hmdNativeResolution;
-    pos = hmdDesktopPosition;
-
-    GLFWwindow * result;
     if (directHmdMode) {
       // In direct mode, try to put the output window on a secondary screen
       // (for easier debugging, assuming your dev environment is on the primary)
-      result = glfw::createSecondaryScreenWindow(size);
+      window = glfw::createSecondaryScreenWindow(outSize);
     } else {
       // If we're creating a desktop window, we should strip off any window decorations
       // which might change the location of the rendered contents relative to the lenses.
@@ -759,24 +789,23 @@ public:
       // Another alternative would be to create the window in fullscreen mode, on
       // platforms that support such a thing.
       glfwWindowHint(GLFW_DECORATED, 0);
-      result = glfw::createWindow(size, pos);
+      window = glfw::createWindow(outSize, outPosition);
     }
 
     // If we're in direct mode, attach to the window
     if (directHmdMode) {
-      void * nativeWindowHandle = nullptr;
-      ON_WINDOWS([&]{ nativeWindowHandle = (void*)glfwGetWin32Window(result); });
-      ON_LINUX([&]{ nativeWindowHandle = (void*)glfwGetX11Window(result); });
-      ON_MAC([&]{ nativeWindowHandle = (void*)glfwGetCocoaWindow(result); });
+      void * nativeWindowHandle = glfw::getNativeWindowHandle(window);
       if (nullptr != nativeWindowHandle) {
         ovrHmd_AttachToWindow(hmd, nativeWindowHandle, nullptr, nullptr);
       }
     }
-    return result;
-  }
-};
 
-class RiftApp : public RiftGlfwApp {
+    return window;
+  }
+}
+
+
+class RiftApp : public GlfwApp, public RiftManagerApp {
 public:
 
 protected:
@@ -813,8 +842,12 @@ public:
   }
 
 protected:
+  virtual GLFWwindow * createRenderingTarget(uvec2 & outSize, ivec2 & outPosition) {
+    return ovr::createRiftRenderingWindow(hmd, outSize, outPosition);
+  }
+
   virtual void initGl() {
-    RiftGlfwApp::initGl();
+    GlfwApp::initGl();
 
     ovrGLConfig cfg;
     memset(&cfg, 0, sizeof(cfg));
@@ -884,7 +917,7 @@ protected:
       return;
     }
 
-    RiftGlfwApp::onKey(key, scancode, action, mods);
+    GlfwApp::onKey(key, scancode, action, mods);
   }
 
   virtual void draw() final {

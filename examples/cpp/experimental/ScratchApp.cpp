@@ -13,7 +13,7 @@ void rasterise(vec3 vs[3], vv3 & out) {
 }
 
 
-uvec2 mapNdcToPixel(czonst vec3 & v, const uvec2 & res) {
+uvec2 mapNdcToPixel(const vec3 & v, const uvec2 & res) {
   vec2(v.x, v.y)
 }
 

@@ -105,9 +105,11 @@ protected:
 
 private:
   ovrEyeRenderDesc eyeRenderDescs[2];
-  glm::mat4 projections[2];
   ovrPosef eyePoses[2];
   ovrEyeType currentEye;
+
+  glm::mat4 projections[2];
+  FramebufferWrapper eyeFramebuffers[2];
 
 protected:
   using RiftGlfwApp::renderStringAt;

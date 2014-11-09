@@ -1,8 +1,8 @@
 #include "Common.h"
 
 struct EyeArgs {
-  glm::mat4               projection;
-  FramebufferWrapperPtr   framebuffer;
+  glm::mat4                 projection;
+  FramebufferWrapper        framebuffer;
 };
 
 class HelloRift : public GlfwApp {
@@ -126,9 +126,8 @@ public:
       eyeTextureHeader.RenderViewport.Pos.y = 0;
       eyeTextureHeader.API = ovrRenderAPI_OpenGL;
 
-      eyeArgs.framebuffer = FramebufferWrapperPtr(new oria::FramebufferWrapper());
-      eyeArgs.framebuffer->init(ovr::toGlm(eyeTextureHeader.TextureSize));
-      ((ovrGLTexture&)textures[eye]).OGL.TexId = oglplus::GetName(eyeArgs.framebuffer->color);
+      eyeArgs.framebuffer.init(ovr::toGlm(eyeTextureHeader.TextureSize));
+      ((ovrGLTexture&)textures[eye]).OGL.TexId = oglplus::GetName(*(eyeArgs.framebuffer.color));
     });
 
     ovrGLConfig cfg;
@@ -182,9 +181,9 @@ public:
       }
     }
 
-    //if (CameraControl::instance().onKey(key, scancode, action, mods)) {
-    //  return;
-    //}
+    if (CameraControl::instance().onKey(key, scancode, action, mods)) {
+      return;
+    }
 
     if (GLFW_PRESS != action) {
       GlfwApp::onKey(key, scancode, action, mods);
@@ -221,7 +220,7 @@ public:
   }
 
   virtual void update() {
-    //CameraControl::instance().applyInteraction(player);
+    CameraControl::instance().applyInteraction(player);
     Stacks::modelview().top() = glm::inverse(player);
   }
 
@@ -239,7 +238,7 @@ public:
       EyeArgs & eyeArgs = perEyeArgs[eye];
 
       const ovrRecti & vp = textures[eye].Header.RenderViewport;
-      eyeArgs.framebuffer->fbo.Bind(oglplus::Framebuffer::Target::Draw);
+      eyeArgs.framebuffer.Bind();
       oglplus::Context::Viewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
       
       Stacks::projection().top() = eyeArgs.projection;
