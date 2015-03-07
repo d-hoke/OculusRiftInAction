@@ -145,6 +145,18 @@ if (LeapMotion_FOUND)
 	message(STATUS "Found Leap Motion SDK")
 endif()
 
+
+set(STEAMWORKS_SDK "C:\\dev\\steam\\sdk")
+find_package(Steamworks QUIET)
+if (STEAMWORKS_FOUND)
+    SET(HAVE_STEAMWORKS 1) 
+    include_directories(${STEAMWORKS_INCLUDE_DIR})
+    list(APPEND EXAMPLE_LIBS ${STEAMWORKS_LIBRARY})
+    message(STATUS "Found Steamworks SDK")
+else()
+    message(STATUS "Steamworks SDK not found")
+endif()
+
 ###############################################################################
 # Intel RealSense SDK - Not currently in use
 
