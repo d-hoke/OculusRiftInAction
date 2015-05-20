@@ -22,6 +22,7 @@ public:
       hmd = ovrHmd_CreateDebug(ovrHmd_DK2);
     }
 
+
     ovrHmd_ConfigureTracking(hmd,
       ovrTrackingCap_Orientation |
       ovrTrackingCap_Position, 0);
@@ -57,7 +58,11 @@ public:
      * this doesn't currently work in OpenGL, so we have to create the window at
      * the full resolution of the BackBufferSize.
      */
-    return ovr::createRiftRenderingWindow(hmd, outSize, outPosition);
+      outSize = uvec2(1280, 720);
+      outPosition = ivec2(100, 100);
+    return glfw::createWindow(outSize, outPosition);
+
+//    return ovr::createRiftRenderingWindow(hmd, outSize, outPosition);
   }
 
   void initGl() {
@@ -189,7 +194,8 @@ public:
 
   virtual void renderScene() {
     oglplus::Context::Clear().DepthBuffer().ColorBuffer();
-    oria::renderManikinScene(ipd, eyeHeight);
+    //oria::renderSkybox(Resource::IMAGES_SKY_CITY_XNEG_PNG);
+    oria::renderSkysphere(Resource::IMAGES_R0010063_JPG);
   }
 };
 

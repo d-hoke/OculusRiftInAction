@@ -42,7 +42,17 @@ inline QRect getSecondaryScreenGeometry(const uvec2 & size) {
   if (best < 0) {
     best = primary;
   }
-  return desktop.screenGeometry(best);
+  QRect result = desktop.screenGeometry(best);
+  if (result.width() > 1920 && result.height() > 1080) {
+    uvec2 move(result.width(), result.height());
+    move -= uvec2(1920, 1080);
+    move /= 2;
+    result.setHeight(1080);
+    result.setWidth(1920);
+    //result.moveLeft(move.x);
+    //result.moveTop(move.y);
+  }
+  return result;
 }
 
 QRiftWindow::QRiftWindow() {
@@ -95,7 +105,7 @@ QRiftWindow::QRiftWindow() {
     }
   }
 #else
-  QRect geometry = getSecondaryScreenGeometry(uvec2(1920, 1080));
+  QRect geometry = getSecondaryScreenGeometry(uvec2(1280, 720));
   setFramePosition(geometry.topLeft());
   resize(geometry.size());
 #endif

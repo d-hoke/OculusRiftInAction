@@ -40,6 +40,7 @@ namespace oria {
   void renderCube(const glm::vec3 & color = Colors::white);
   void renderColorCube();
   void renderSkybox(Resource firstImageResource);
+  void renderSkysphere(Resource image360);
   void renderFloor();
   void renderManikin();
   void renderRift(float alpha = 0.0f);

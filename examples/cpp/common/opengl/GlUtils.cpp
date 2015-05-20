@@ -485,6 +485,33 @@ namespace oria {
     DefaultTexture().Bind(TextureTarget::CubeMap);
   }
 
+  void renderSkysphere(Resource image360) {
+      using namespace oglplus;
+
+      static ProgramPtr program;
+      static ShapeWrapperPtr shape;
+      if (!program) {
+          program = loadProgram(Resource::SHADERS_CUBEMAP_VS, Resource::SHADERS_CUBEMAP360_FS);
+          shape = ShapeWrapperPtr(new shapes::ShapeWrapper(List("Position").Get(), shapes::SkyBox(), *program));
+          Platform::addShutdownHook([&] {
+              program.reset();
+              shape.reset();
+          });
+      }
+
+      TexturePtr texture = load2dTexture(image360);
+      texture->Bind(TextureTarget::_2D);
+      MatrixStack & mv = Stacks::modelview();
+      mv.withPush([&] {
+          Context::Disable(Capability::DepthTest);
+          Context::Disable(Capability::CullFace);
+          renderGeometry(shape, program);
+          Context::Enable(Capability::CullFace);
+          Context::Enable(Capability::DepthTest);
+      });
+      DefaultTexture().Bind(TextureTarget::CubeMap);
+  }
+
   void renderFloor() {
     using namespace oglplus;
     const float SIZE = 100;
