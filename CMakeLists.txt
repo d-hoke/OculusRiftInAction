@@ -46,8 +46,8 @@ endif()
 
 # The primary SDK artifact, a static library for Oculus access 
 add_subdirectory(libraries/OculusSDK/LibOVR)
-set_target_properties(OculusVR PROPERTIES FOLDER "3rdparty")
-list(APPEND EXAMPLE_LIBS OculusVR)
+set_target_properties(ovr PROPERTIES FOLDER "3rdparty")
+list(APPEND EXAMPLE_LIBS ovr)
 
 ###############################################################################
 #
