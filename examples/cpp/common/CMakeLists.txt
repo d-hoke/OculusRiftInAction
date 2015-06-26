@@ -1,7 +1,7 @@
 file(GLOB SOURCE_FILES *.h *.cpp)
 source_group(core FILES ${SOURCE_FILES})
 
-foreach(dir rendering opengl glfw ovr)
+foreach(dir rendering opengl)
     file(GLOB MORE_FILES ${dir}/*)
     list(APPEND SOURCE_FILES ${MORE_FILES})
     source_group(${dir} FILES ${MORE_FILES})

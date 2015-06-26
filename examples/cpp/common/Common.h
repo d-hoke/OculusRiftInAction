@@ -84,27 +84,9 @@ inline float aspect(const glm::vec2 & v) {
   return (float)v.x / (float)v.y;
 }
 
-#include <GLFW/glfw3.h>
-
 #include <Resources.h>
 
-typedef std::function<void()> Lambda;
-typedef std::list<Lambda> LambdaList;
-
-class Finally {
-private:
-  Lambda function;
-
-public:
-  Finally(Lambda function)
-    : function(function) {
-  }
-
-  virtual ~Finally() {
-    function();
-  }
-};
-
+#include "Lambdas.h"
 #include "Platform.h"
 #include "Utils.h"
 
@@ -113,7 +95,6 @@ public:
 #include "rendering/State.h"
 #include "rendering/Colors.h"
 #include "rendering/Vectors.h"
-#include "rendering/Interaction.h"
 
 #include "opengl/Constants.h"
 #include "opengl/Textures.h"
@@ -121,43 +102,16 @@ public:
 #include "opengl/Framebuffer.h"
 #include "opengl/GlUtils.h"
 
-#include "glfw/GlfwUtils.h"
-#include "glfw/GlfwApp.h"
-
-#if defined(OS_WIN)
-#define OVR_OS_WIN32
-#elif defined(OS_OSX)
-#define OVR_OS_MAC
-#elif defined(OS_LINUX)
-#define OVR_OS_LINUX
+#ifndef TAU
+#define TAU 6.28318530718
 #endif
 
-#include <OVR_CAPI.h>
-#include <OVR_CAPI_GL.h>
-
-#include "ovr/OvrUtils.h"
-#include "ovr/RiftRenderingApp.h"
-#include "ovr/RiftGlfwApp.h"
-#include "ovr/RiftApp.h"
-
-#ifndef PI
-#define PI 3.14159265f
+#ifndef HALF_TAU
+#define HALF_TAU (TAU / 2.0f)
 #endif
 
-#ifndef HALF_PI
-#define HALF_PI (PI / 2.0f)
-#endif
-
-#ifndef TWO_PI
-#define TWO_PI (PI * 2.0f)
-#endif
-
-#ifndef RADIANS_TO_DEGREES
-#define RADIANS_TO_DEGREES (180.0f / PI)
-#endif
-
-#ifndef DEGREES_TO_RADIANS
-#define DEGREES_TO_RADIANS (PI / 180.0f)
+#ifndef QUARTER_TAU
+#define QUARTER_TAU (TAU / 4.0f)
 #endif
 
 // Combine some macros together to create a single macro

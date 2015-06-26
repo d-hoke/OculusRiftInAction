@@ -18,19 +18,57 @@ limitations under the License.
 ************************************************************************************/
 
 #pragma once
+#include "Shadertoy.h"
 
 class Renderer : public QObject {
     Q_OBJECT
-protected:
+
     struct Channel {
         oglplus::Texture::Target target;
         TexturePtr texture;
         vec3 resolution;
     };
+
     struct TextureData {
         TexturePtr tex;
         uvec2 size;
     };
+
+public:
+    void setup(QOpenGLContext * context);
+    void render();
+    void updateUniforms();
+
+    void restart() {
+        startTime = Platform::elapsedSeconds();
+    }
+
+    void setPosition(const vec3 & position) {
+        this->position = position;
+    }
+
+    void setResolution(const vec2 & resolution) {
+        this->resolution = resolution;
+    }
+
+    QString canonicalTexturePath(QString texturePath) {
+        while (canonicalPathMap.count(texturePath)) {
+            texturePath = canonicalPathMap[texturePath];
+        }
+        return texturePath;
+    }
+
+    virtual bool setShaderSourceInternal(QString source);
+    virtual TextureData loadTexture(QString source);
+    virtual void setChannelTextureInternal(int channel, shadertoy::ChannelInputType type, const QString & textureSource);
+    virtual void setShaderInternal(const shadertoy::Shader & shader);
+
+signals:
+    void compileError(const QString & source);
+    void compileSuccess();
+
+protected:
+    void loop();
 
     typedef std::map<QString, TextureData> TextureMap;
     typedef std::map<QString, QString> CanonicalPathMap;
@@ -69,37 +107,7 @@ protected:
     ProgramPtr shadertoyProgram;
 
     void initTextureCache();
-
-public:
-    void setup(QOpenGLContext * context);
-    void render();
-    void updateUniforms();
-
-    void restart() {
-        startTime = Platform::elapsedSeconds();
-    }
-
-    void setPosition(const vec3 & position) {
-        this->position = position;
-    }
-
-    void setResolution(const vec2 & resolution) {
-        this->resolution = resolution;
-    }
-
-    QString canonicalTexturePath(QString texturePath) {
-        while (canonicalPathMap.count(texturePath)) {
-            texturePath = canonicalPathMap[texturePath];
-        }
-        return texturePath;
-    }
-
-    virtual bool setShaderSourceInternal(QString source);
-    virtual TextureData loadTexture(QString source);
-    virtual void setChannelTextureInternal(int channel, shadertoy::ChannelInputType type, const QString & textureSource);
-    virtual void setShaderInternal(const shadertoy::Shader & shader);
-
-signals:
-    void compileError(const QString & source);
-    void compileSuccess();
+    LambdaThread _renderThread;
+    TaskQueueWrapper _tasks;
+    bool _shutdown{ false };
 };

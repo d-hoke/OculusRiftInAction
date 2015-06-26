@@ -4,9 +4,11 @@
 #
 add_subdirectory(common)
 set_target_properties(ExampleCommon PROPERTIES FOLDER "Examples/Shared")
-
 include_directories(common)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/common)
+
+add_subdirectory(display)
+include_directories(display)
 
 function(make_example2 PROJECT_FOLDER NAME SOURCE_FILES) 
     set(EXECUTABLE "${NAME}")

@@ -18,16 +18,6 @@ limitations under the License.
 ************************************************************************************/
 
 #pragma once
+#include "DisplayPlugins.h"
 
-class ShadertoyApp : public QApplication {
-  Q_OBJECT
-  QWidget desktopWindow;
-
-public:
-  ShadertoyApp(int argc, char ** argv);
-  virtual ~ShadertoyApp();
-
-private:
-  void setupDesktopWindow();
-  static void MessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg);
-};
+Plugins::Display::Plugin* buildWindowPlugin();

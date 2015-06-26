@@ -142,7 +142,7 @@ if (LeapMotion_FOUND)
     SET(HAVE_LEAP 1) 
     include_directories(${LeapMotion_INCLUDE_DIR})
     list(APPEND EXAMPLE_LIBS ${LeapMotion_LIBRARY})
-	message(STATUS "Found Leap Motion SDK")
+    message(STATUS "Found Leap Motion SDK")
 endif()
 
 ###############################################################################
@@ -186,11 +186,11 @@ if (Qt5Core_FOUND)
     set(CMAKE_AUTORCC ON)
     set(CMAKE_AUTOMOC_MOC_OPTIONS "-bQtCommon.h" "-bCommon.h" )
    
-	foreach(qtc ${QT_COMPONENTS})
-    	list(APPEND EXAMPLE_LIBS ${Qt5${qtc}_LIBRARIES})
+    foreach(qtc ${QT_COMPONENTS})
+        list(APPEND EXAMPLE_LIBS ${Qt5${qtc}_LIBRARIES})
         add_definitions(${Qt5${qtc}_DEFINITIONS})
         include_directories(${Qt5${qtc}_INCLUDE_DIRS})
-	endforeach()
+    endforeach()
 else()
     message(WARNING "Qt framework not found") 
 endif()
@@ -248,7 +248,7 @@ include_directories(${CMAKE_SOURCE_DIR}/libraries/oglplus/implement)
 include_directories(${CMAKE_BINARY_DIR}/libraries/oglplus/include)
 
 include_directories(${CMAKE_SOURCE_DIR}/libraries/OpenCTM)
-include_directories(${CMAKE_SOURCE_DIR}/libraries/OculusSDK/LibOVR/Src)
+include_directories(${CMAKE_SOURCE_DIR}/libraries/OculusSDK/LibOVR/Include)
 
 if (OpenCV_FOUND) 
     include_directories(${OpenCV_INCLUDE_DIRS})
@@ -271,9 +271,9 @@ endif()
 
 
 if (Qt5_FOUND)
-	foreach(qtc ${QT_COMPONENTS})
+    foreach(qtc ${QT_COMPONENTS})
         include_directories(${Qt5${qtc}_INCLUDE_DIRS})
-	endforeach()
+    endforeach()
 endif()
 
 ###############################################################################

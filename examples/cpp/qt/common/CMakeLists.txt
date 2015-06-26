@@ -1,4 +1,4 @@
-file(GLOB SOURCE_FILES *.h *.cpp)
+file(GLOB_RECURSE SOURCE_FILES *.h *.cpp)
 
 qt5_add_resources(COMMON_RCC Common.qrc)
 list(APPEND SOURCE_FILES ${COMMON_RCC})

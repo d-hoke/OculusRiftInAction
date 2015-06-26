@@ -28,45 +28,45 @@
 #include <QQuickWindow>
 #include <QQuickRenderControl>
 #include <QQuickImageProvider>
+#include <QSurfaceFormat>
 
+namespace qt {
+    inline ivec2 toGlm(const QPoint & pt) {
+        return ivec2(pt.x(), pt.y());
+    }
 
-namespace oria { namespace qt {
-  vec2 toGlm(const QSize & size);
-  vec2 toGlm(const QPointF & pt);
-  QSize sizeFromGlm(const vec2 & size);
-  QPointF pointFromGlm(const vec2 & pt);
-  QByteArray toByteArray(Resource res);
-  QString toString(Resource res);
-  QImage loadImageResource(Resource res);
-  QPixmap loadXpmResource(Resource res);
+    inline uvec2 toGlm(const QSize & size) {
+        return uvec2(size.width(), size.height());
+    }
 
-} } // namespaces
+    inline vec2 toGlm(const QPointF & pt) {
+        return vec2(pt.x(), pt.y());
+    }
+
+    QSize sizeFromGlm(const vec2 & size);
+    QPointF pointFromGlm(const vec2 & pt);
+    QByteArray toByteArray(Resource res);
+    QString toString(Resource res);
+    QImage loadImageResource(Resource res);
+}
 
 
 inline QByteArray readFileToByteArray(const QString & fileName) {
-  QFile f(fileName);
-  f.open(QFile::ReadOnly);
-  return f.readAll();
+    QFile f(fileName);
+    f.open(QFile::ReadOnly);
+    return f.readAll();
 }
 
 inline std::vector<uint8_t> readFileToVector(const QString & fileName) {
-  QByteArray ba = readFileToByteArray(fileName);
-  return std::vector<uint8_t>(ba.constData(), ba.constData() + ba.size());
+    QByteArray ba = readFileToByteArray(fileName);
+    return std::vector<uint8_t>(ba.constData(), ba.constData() + ba.size());
 }
 
 inline QString readFileToString(const QString & fileName) {
-  return QString(readFileToByteArray(fileName));
+    return QString(readFileToByteArray(fileName));
 }
 
-
 QJsonValue path(const QJsonValue & parent, std::initializer_list<QVariant> elements);
-
-/**
- * Forwards mouse and keyboard input from the specified widget to the
- * graphics view, allowing the user to click on one widget (like an
- * OpenGl window with controls rendered inside it) and have the resulting
- * click reflected on the scene displayed in this view.
- */
 
 class QResourceImageProvider : public QQuickImageProvider {
   std::map<QString, Resource> map;
@@ -78,7 +78,7 @@ public:
     }
   }
 
-  virtual QImage	requestImage(const QString & id, QSize * size, const QSize & requestedSize) {
+  virtual QImage requestImage(const QString & id, QSize * size, const QSize & requestedSize) {
     qDebug() << "Requested image " << id << " " << requestedSize;
     QImage image;
 
@@ -86,7 +86,7 @@ public:
       if (size) {
         *size = QSize(128, 128);
       }
-      image.loadFromData(oria::qt::toByteArray(map[id]));
+      image.loadFromData(qt::toByteArray(map[id]));
       image = image.scaled(QSize(128, 128));
     }
 
@@ -94,99 +94,6 @@ public:
   }
 };
 
-class QMyQuickRenderControl : public QQuickRenderControl {
-public:
-  QWindow * m_renderWindow{ nullptr };
-
-  QWindow * renderWindow(QPoint * offset) Q_DECL_OVERRIDE{
-    if (nullptr == m_renderWindow) {
-      return QQuickRenderControl::renderWindow(offset);
-    }
-    if (nullptr != offset) {
-      offset->rx() = offset->ry() = 0;
-    }
-    return m_renderWindow;
-  }
-
-};
-
-
-class QOffscreenUi : public QObject {
-    Q_OBJECT
-        using ActomicMouse = std::atomic<vec2>;
-
-    bool m_paused;
-    ActomicMouse mousePosition;
-
-public:
-    QOffscreenUi();
-    ~QOffscreenUi();
-    void setup(const QSize & size, QOpenGLContext * context);
-    void loadQml(const QUrl & qmlSource, std::function<void(QQmlContext*)> f = [](QQmlContext*){});
-    QQmlContext * qmlContext();
-
-    void pause() {
-        m_paused = true;
-    }
-
-    void resume() {
-        m_paused = false;
-        requestRender();
-    }
-
-    void setProxyWindow(QWindow * window) {
-        m_renderControl->m_renderWindow = window;
-    }
-
-    void setSourceSize(const QSize & size) {
-        m_sourceSize = oria::qt::toGlm(size);
-    }
-
-    ActomicMouse  & getMousePosition() {
-        return mousePosition;
-    }
-
-    bool interceptEvent(QEvent * e);
-
-
-protected:
-    QPointF mapWindowToUi(const QPointF & p);
-    void mouseMoved(vec2 mp);
-
-private slots:
-    void updateQuick();
-    void run();
-
-public slots:
-    void requestUpdate();
-    void requestRender();
-    void lockTexture(int texture);
-    void releaseTexture(int texture);
-
-signals:
-    void textureUpdated(int texture);
-
-private:
-    QMap<int, QSharedPointer<QOpenGLFramebufferObject>> m_fboMap;
-    QMap<int, int> m_fboLocks;
-    QQueue<QOpenGLFramebufferObject*> m_readyFboQueue;
-  
-    QOpenGLFramebufferObject* getReadyFbo();
-
-public:
-    QOpenGLContext *m_context{ new QOpenGLContext };
-    QOffscreenSurface *m_offscreenSurface{ new QOffscreenSurface };
-    QMyQuickRenderControl  *m_renderControl{ new QMyQuickRenderControl };
-    QQuickWindow *m_quickWindow{ nullptr };
-    QQmlEngine *m_qmlEngine{ nullptr };
-    QQmlComponent *m_qmlComponent{ nullptr };
-    QQuickItem * m_rootItem{ nullptr };
-    QTimer m_updateTimer;
-    vec2 m_sourceSize;
-    vec2 m_uiSize;
-    bool m_polish{ true };
-    std::mutex renderLock;
-};
 
 class LambdaThread : public QThread {
   Q_OBJECT
@@ -208,6 +115,8 @@ public:
 
 
 TexturePtr loadCursor(Resource res);
+
+QSurfaceFormat getDesiredSurfaceFormat();
 
 
 #ifdef OS_WIN
@@ -232,5 +141,3 @@ MAIN_DECL { \
   } \
   return -1; \
 }
-
-

@@ -18,7 +18,7 @@ limitations under the License.
 ************************************************************************************/
 
 #include "QtCommon.h"
-
+#include "GlslEditor.h"
 #include <QDomDocument>
 
 typedef std::list<QString> List;
@@ -88,27 +88,7 @@ static Map createGlslMap() {
 
   return finalMap;
 }
-//color0,
-//  color1,
-//  black,
-//  white,
-//  darkGray,
-//  gray,
-//  lightGray,
-//  red,
-//  green,
-//  blue,
-//  cyan,
-//  magenta,
-//  yellow,
-//  darkRed,
-//  darkGreen,
-//  darkBlue,
-//  darkCyan,
-//  darkMagenta,
-//  darkYellow,
-//  transparent
-//! [0]
+
 GlslHighlighter::GlslHighlighter(bool nightMode, QTextDocument *parent)
   : QSyntaxHighlighter(parent) {
 

@@ -19,7 +19,6 @@
 
 #include "Common.h"
 
-#include "Font.h"
 #include <openctmpp.h>
 #pragma warning( disable : 4068 4244 4267 4065 4101 4244)
 #include <oglplus/bound/buffer.hpp>
@@ -323,49 +322,6 @@ namespace oria {
     return wide;
   }
 
-  Text::FontPtr getFont(Resource fontName) {
-    static std::map<Resource, Text::FontPtr> fonts;
-    if (fonts.find(fontName) == fonts.end()) {
-      std::string fontData = Platform::getResourceString(fontName);
-      Text::FontPtr result(new Text::Font());
-      result->read((const void*)fontData.data(), fontData.size());
-      fonts[fontName] = result;
-    }
-    return fonts[fontName];
-  }
-
-  Text::FontPtr getDefaultFont() {
-    return getFont(Resource::FONTS_INCONSOLATA_MEDIUM_SDFF);
-  }
-
-
-  void renderString(const std::string & cstr, glm::vec2 & cursor,
-    float fontSize, Resource fontResource) {
-    getFont(fontResource)->renderString(toUtf16(cstr), cursor, fontSize);
-  }
-
-  void renderParagraph(const std::string & str) {
-    // FIXME
-//    glm::vec2 cursor;
-//    Text::FontPtr font = getFont(Resource::FONTS_INCONSOLATA_MEDIUM_SDFF);
-//    rectf bounds;
-//    std::wstring wstr = toUtf16(str);
-//    for (size_t i = 0; i < wstr.length(); ++i) {
-//      uint16_t wchar = wstr.at(i);
-//      rectf letterBound = font->getBounds(wchar);
-//      extendLeft(bounds, letterBound);
-//    }
-//    renderString(str, cursor);
-  }
-
-  void renderString(const std::string & str, glm::vec3 & cursor3d,
-    float fontSize, Resource fontResource) {
-    glm::vec4 target = glm::vec4(cursor3d, 0);
-    target = Stacks::projection().top() * Stacks::modelview().top() * target;
-    glm::vec2 newCursor(target.x, target.y);
-    renderString(str, newCursor, fontSize, fontResource);
-  }
-
   void bindLights(ProgramPtr & program) {
     using namespace oglplus;
     Lights & lights = Stacks::lights();
@@ -574,7 +530,7 @@ namespace oria {
 
     auto & mv = Stacks::modelview();
     mv.withPush([&]{
-      mv.rotate(-HALF_PI - 0.22f, Vectors::X_AXIS).scale(0.5f);
+      mv.rotate(-QUARTER_TAU - 0.22f, Vectors::X_AXIS).scale(0.5f);
       renderGeometry(shape, program, [&] {
         oria::bindLights(program);
       });

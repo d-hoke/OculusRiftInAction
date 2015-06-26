@@ -46,15 +46,6 @@ namespace oria {
   void renderArtificialHorizon(float alpha = 0.0f);
   void renderManikinScene(float ipd, float eyeHeight);
   void renderExampleScene(float ipd, float eyeHeight);
-
-  void renderString(const std::string & str, glm::vec2 & cursor,
-      float fontSize = 12.0f, Resource font =
-          Resource::FONTS_INCONSOLATA_MEDIUM_SDFF);
-
-  void renderString(const std::string & str, glm::vec3 & cursor,
-      float fontSize = 12.0f, Resource font =
-          Resource::FONTS_INCONSOLATA_MEDIUM_SDFF);
-
   void draw3dGrid();
   void draw3dVector(const glm::vec3 & end, const glm::vec3 & col = glm::vec3(1));
 
@@ -74,13 +65,5 @@ namespace oria {
       GLsizei length,
       const GLchar * message,
       void * userParam);
-}
-
-template <typename F>
-void withContext(GLFWwindow * newContext, F f) {
-  GLFWwindow * save = glfwGetCurrentContext();
-  glfwMakeContextCurrent(newContext);
-  f();
-  glfwMakeContextCurrent(save);
 }
 

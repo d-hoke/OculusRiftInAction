@@ -4,33 +4,6 @@ namespace oria {
   std::string readFile(const std::string & filename);
 }
 
-class TaskQueueWrapper {
-  typedef std::mutex Mutex;
-  typedef std::unique_lock<Mutex> Locker;
-  typedef std::queue<Lambda> TaskQueue;
-
-  TaskQueue queue;
-  Mutex mutex;
-
-public:
-  void drainTaskQueue() {
-    TaskQueue copy;
-    {
-      Locker lock(mutex);
-      std::swap(copy, queue);
-    }
-    while (!copy.empty()) {
-      copy.front()();
-      copy.pop();
-    }
-  }
-
-  void queueTask(Lambda task) {
-    Locker locker(mutex);
-    queue.push(task);
-  }
-
-};
 
 
 class RateCounter {
@@ -41,7 +14,7 @@ public:
     times.clear();
   }
 
-  unsigned int count() const {
+  size_t count() const {
     return times.size() - 1;
   }
 

@@ -18,8 +18,9 @@ limitations under the License.
 ************************************************************************************/
 
 #include "QtCommon.h"
-#include "Application.h"
 #include "MainWindow.h"
+#include <QGuiApplication>
+#include <QQuickView>
 
 #ifndef _DEBUG
 #include "TrackerbirdConfig.h"
@@ -29,47 +30,134 @@ limitations under the License.
 #include <Trackerbird.h>
 #endif
 
-MAIN_DECL {
-  try {
-#ifdef USE_RIFT
-    ovr_Initialize();
-#endif
+const char * ORG_NAME = "Oculus Rift in Action";
+const char * ORG_DOMAIN = "oculusriftinaction.com";
+const char * APP_NAME = "ShadertoyVR";
 
+QDir CONFIG_DIR;
+QSharedPointer<QFile> LOG_FILE;
+QtMessageHandler ORIGINAL_MESSAGE_HANDLER;
+static const QUrl SOURCE{ "qrc:layouts/DesktopWindow.qml" };
+QQuickView* MAIN_WINDOW{ nullptr };
+
+
+void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg) {
+    ORIGINAL_MESSAGE_HANDLER(type, context, msg);
+    QByteArray localMsg = msg.toLocal8Bit();
+    QString now = QDateTime::currentDateTime().toString("yyyy.dd.MM_hh:mm:ss");
+    switch (type) {
+    case QtDebugMsg:
+        LOG_FILE->write(QString().sprintf("%s Debug:    %s (%s:%u, %s)\n", now.toLocal8Bit().constData(), localMsg.constData(), context.file, context.line, context.function).toLocal8Bit());
+        break;
+    case QtWarningMsg:
+        LOG_FILE->write(QString().sprintf("%s Warning:  %s (%s:%u, %s)\n", now.toLocal8Bit().constData(), localMsg.constData(), context.file, context.line, context.function).toLocal8Bit());
+        break;
+    case QtCriticalMsg:
+        LOG_FILE->write(QString().sprintf("%s Critical: %s (%s:%u, %s)\n", now.toLocal8Bit().constData(), localMsg.constData(), context.file, context.line, context.function).toLocal8Bit());
+        break;
+    case QtFatalMsg:
+        LOG_FILE->write(QString().sprintf("%s Fatal:    %s (%s:%u, %s)\n", now.toLocal8Bit().constData(), localMsg.constData(), context.file, context.line, context.function).toLocal8Bit());
+        LOG_FILE->flush();
+        abort();
+}
+    LOG_FILE->flush();
+}
+
+void initTracker() {
 #if (!defined(_DEBUG) && defined(TRACKERBIRD_PRODUCT_ID))
     tbCreateConfig(TRACKERBIRD_URL, TRACKERBIRD_PRODUCT_ID,
-      TRACKERBIRD_PRODUCT_VERSION, TRACKERBIRD_BUILD_NUMBER,
-      TRACKERBIRD_MULTISESSION_ENABLED);
+        TRACKERBIRD_PRODUCT_VERSION, TRACKERBIRD_BUILD_NUMBER,
+        TRACKERBIRD_MULTISESSION_ENABLED);
     tbStart();
-    qputenv("QT_QPA_PLATFORM_PLUGIN_PATH", "./plugins");
 #endif
+}
 
-    QT_APP_WITH_ARGS(ShadertoyApp);
-    MainWindow * riftRenderWidget = new MainWindow();
-
-#if (!defined(_DEBUG) && defined(TRACKERBIRD_PRODUCT_ID))
-    QCoreApplication::setApplicationVersion(QString::fromWCharArray(TRACKERBIRD_PRODUCT_VERSION));
-#endif
-
-    riftRenderWidget->start();
-    riftRenderWidget->requestActivate();
-    int result = app.exec();
-
+void shutdownTracker() {
 #if (!defined(_DEBUG) && defined(TRACKERBIRD_PRODUCT_ID))
     tbStop(TRUE);
 #endif
+}
 
-    riftRenderWidget->stop();
-    riftRenderWidget->makeCurrent();
-    Platform::runShutdownHooks();
-    delete riftRenderWidget;
+void initAppInformation() {
+    QCoreApplication::setOrganizationName(ORG_NAME);
+    QCoreApplication::setOrganizationDomain(ORG_DOMAIN);
+    QCoreApplication::setApplicationName(APP_NAME);
+#if (!defined(_DEBUG) && defined(TRACKERBIRD_PRODUCT_ID))
+    QCoreApplication::setApplicationVersion(QString::fromWCharArray(TRACKERBIRD_PRODUCT_VERSION));
+#endif
+}
 
-    ovr_Shutdown();
+void initResources() {
+    Q_INIT_RESOURCE(ShadertoyVR);
+}
 
+void initSettings() {
+    CONFIG_DIR = QDir(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation));
+}
+
+void initLogging() {
+    QString currentLogName = CONFIG_DIR.absoluteFilePath("ShadertoyVR.log");
+    LOG_FILE = QSharedPointer<QFile>(new QFile(currentLogName));
+    if (LOG_FILE->exists()) {
+        QFile::rename(currentLogName,
+            CONFIG_DIR.absoluteFilePath("ShadertoyVR_" +
+            QDateTime::currentDateTime().toString("yyyy.dd.MM_hh.mm.ss") + ".log"));
+    }
+    if (!LOG_FILE->open(QIODevice::WriteOnly | QIODevice::Append)) {
+        qWarning() << "Could not open log file";
+    }
+    ORIGINAL_MESSAGE_HANDLER = qInstallMessageHandler(messageHandler);
+}
+
+void shutdownLogging() {
+    qInstallMessageHandler(ORIGINAL_MESSAGE_HANDLER);
+    LOG_FILE->close();
+}
+
+void initTypes() {
+    qmlRegisterType<MainWindow>("ShadertoyVR", 1, 0, "MainWindow");
+}
+
+void initUi() {
+    static QQmlEngine engine;
+    MAIN_WINDOW = new QQuickView;
+    MAIN_WINDOW->setSource(SOURCE);
+    MAIN_WINDOW->show();
+}
+
+MAIN_DECL {
+  try {
+
+#if !defined(_DEBUG)
+    qputenv("QT_QPA_PLATFORM_PLUGIN_PATH", "./plugins");
+#endif
+    QT_APP_WITH_ARGS(QGuiApplication);
+
+    initTracker();
+    initAppInformation();
+    initResources();
+    initSettings();
+    initLogging();
+    initTypes();
+    initUi();
+
+    int result = app.exec();
+
+    shutdownTracker();
+    shutdownLogging();
+
+    //MainWindow * riftRenderWidget = new MainWindow();
+    //riftRenderWidget->start();
+    //riftRenderWidget->requestActivate();
+    //riftRenderWidget->stop();
+    //riftRenderWidget->makeCurrent();
+    //Platform::runShutdownHooks();
+    //delete riftRenderWidget;
     return result;
   } catch (std::exception & error) {
-    SAY_ERR(error.what());
+    qFatal(error.what());
   } catch (const std::string & error) {
-    SAY_ERR(error.c_str());
+    qFatal(error.c_str());
   }
   return -1;
 }

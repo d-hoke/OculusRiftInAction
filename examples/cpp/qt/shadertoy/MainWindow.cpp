@@ -16,8 +16,212 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 ************************************************************************************/
+
 #include "QtCommon.h"
 #include "MainWindow.h"
+
+#include <QSurfaceFormat>
+
+using namespace oglplus;
+using namespace Plugins::Display;
+
+extern QDir CONFIG_DIR;
+static const float ROOT_2 = sqrt(2.0f);
+static const float INV_ROOT_2 = 1.0f / ROOT_2;
+static uvec2 UI_SIZE(1280, 720);
+static float UI_ASPECT = aspect(vec2(UI_SIZE));
+static float UI_INVERSE_ASPECT = 1.0f / UI_ASPECT;
+
+Plugin** DISPLAY_PLUGINS{ nullptr };
+size_t DISPLAY_PLUGIN_COUNT;
+
+MainWindow::MainWindow(QQuickItem* parent) {
+    DISPLAY_PLUGIN_COUNT = Plugins::Display::list(nullptr);
+    DISPLAY_PLUGINS = new Plugins::Display::Plugin*[DISPLAY_PLUGIN_COUNT];
+    Plugins::Display::list(DISPLAY_PLUGINS);
+    for (size_t i = 0; i < DISPLAY_PLUGIN_COUNT; ++i) {
+        Plugins::Display::Plugin* plugin = DISPLAY_PLUGINS[i];
+        _displayPlugins << plugin->name();
+    }
+    _surface.create(nullptr);
+    _surface.makeCurrent();
+    glewExperimental = true;
+    glewInit();
+    glGetError();
+    _surface.doneCurrent();
+
+//    qApp->setFont(QFont("Arial", 14, QFont::Bold));
+    _uiSurface.pause();
+    _uiSurface.create(_surface.context());
+    _uiSurface.resize(QSize(UI_SIZE.x, UI_SIZE.y));
+    //{
+    //    QStringList dataList;
+    //    foreach(const QString path, PRESETS) {
+    //        shadertoy::Shader shader = shadertoy::loadShaderFile(path);
+    //        dataList.append(shader.name);
+    //    }
+    //    auto qmlContext = uiWindow->m_qmlEngine->rootContext();
+    //    qmlContext->setContextProperty("presetsModel", QVariant::fromValue(dataList));
+    //    QUrl url = QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + "/shaders");
+    //    qmlContext->setContextProperty("userPresetsFolder", url);
+    //}
+    //uiWindow->setProxyWindow(this);
+
+    QUrl qml = QUrl("qrc:/layouts/Combined.qml");
+    //_uiSurface.m_qmlEngine->addImportPath("./qml");
+    //_uiSurface.m_qmlEngine->addImportPath("./layouts");
+    //_uiSurface.m_qmlEngine->addImportPath(".");
+    _uiSurface.load(qml);
+    connect(&_uiSurface, &OffscreenQmlSurface::textureUpdated, this, [=](int textureId) {
+        onUiTextureReady(textureId, 0);
+        //uiWindow->lockTexture(textureId);
+        //GLuint oldTexture = exchangeUiTexture(textureId);
+        //if (oldTexture) {
+        //    uiWindow->releaseTexture(oldTexture);
+        //}
+    });
+    _uiSurface.resume();
+}
+
+MainWindow::~MainWindow() {
+}
+
+const QStringList& MainWindow::displayPlugins() {
+    return _displayPlugins;
+}
+
+void MainWindow::activatePlugin(int index) {
+    Plugin* newPlugin = DISPLAY_PLUGINS[index];
+    newPlugin->setShareContext(_surface.context());
+    if (!newPlugin->start()) {
+        qDebug() << "Failed ot init plugin";
+        Q_ASSERT(false);
+        return;
+    }
+
+    if (_activePlugin) {
+        disconnect(
+            _activePlugin, &Plugins::Display::Plugin::requestFrame, 
+            this, &MainWindow::onFrameRequested);
+        _activePlugin->stop();
+    }
+
+    _activePlugin = newPlugin;
+    connect(
+        _activePlugin, &Plugins::Display::Plugin::requestFrame, 
+        this, &MainWindow::onFrameRequested);
+}
+
+void MainWindow::onFrameRequested() {
+    qDebug() << "Frame requested";
+    if (!_activePlugin) {
+        return;
+    }
+
+    // get the latest UI texture & size
+    // get the latest shader texture & size
+
+    _activePlugin->preRender();
+    _activePlugin->render(0, uvec2(0));
+    _activePlugin->postRender();
+}
+
+struct TextureContainer {
+    GLuint texture;
+    GLsync writeSync;
+    GLsync readSync;
+};
+
+static TextureContainer _uiTextureContainer;
+static TextureContainer _shaderTextureContainer;
+
+void MainWindow::onUiTextureReady(GLuint texture, GLsync sync) {
+    if (_uiTextureContainer.texture) {
+        _uiSurface.releaseTexture(_uiTextureContainer.texture, _uiTextureContainer.readSync);
+        _uiTextureContainer.readSync = 0;
+        _uiTextureContainer.texture = 0;
+        _uiTextureContainer.writeSync = 0;
+    }
+    _uiTextureContainer.texture = texture;
+    _uiTextureContainer.readSync = sync;
+}
+
+static TextureContainer _shaderTextureContainer;
+
+void MainWindow::onShaderTextureReady(GLuint texture, GLsync sync) {
+}
+
+//void MainWindow::renderLoop() {
+//    _context.makeCurrent(&_surface);
+//
+//    glewExperimental = true;
+//    glewInit();
+//    glGetError();
+//
+//    setup();
+//
+//    while (!_shutdown) {
+//        if (QCoreApplication::hasPendingEvents())
+//            QCoreApplication::processEvents();
+//        _tasks.drainTaskQueue();
+//        _context.makeCurrent(&_surface);
+//        drawFrame();
+//        static RateCounter rateCounter;
+//        rateCounter.increment();
+//        if (rateCounter.count() > 60) {
+//            float fps = rateCounter.getRate();
+//            //updateFps(fps);
+//            rateCounter.reset();
+//        }
+//    }
+//    _context.doneCurrent();
+//    _context.moveToThread(QCoreApplication::instance()->thread());
+//}
+
+#ifndef USE_RIFT
+m_context->swapBuffers(this);
+#endif
+
+
+#if 0
+void MainWindow::drawFrame() {
+    if (_activePlugin) {
+        _activePlugin->preRender();
+        _activePlugin->render(0, vec2());
+        _activePlugin->postRender();
+    }
+}
+
+void MainWindow::setup() {
+    _renderer.setup(&_context);
+    // The geometry and shader for rendering the 2D UI surface when needed
+    uiProgram = oria::loadProgram(
+        Resource::SHADERS_TEXTURED_VS,
+        Resource::SHADERS_TEXTURED_FS);
+    uiShape = oria::loadPlane(uiProgram, UI_ASPECT);
+
+    // The geometry and shader for scaling up the rendered shadertoy effect
+    // up to the full offscreen render resolution.  This is then compositied
+    // with the UI window
+    planeProgram = oria::loadProgram(
+        Resource::SHADERS_TEXTURED_VS,
+        Resource::SHADERS_TEXTURED_FS);
+    plane = oria::loadPlane(planeProgram, 1.0);
+
+    mouseTexture = loadCursor(Resource::IMAGES_CURSOR_PNG);
+    mouseShape = oria::loadPlane(uiProgram, UI_INVERSE_ASPECT);
+
+    resize();
+}
+
+void MainWindow::resize() {
+    uiFramebuffer = FramebufferWrapperPtr(new FramebufferWrapper());
+    uiFramebuffer->init(UI_SIZE);
+
+    shaderFramebuffer = FramebufferWrapperPtr(new FramebufferWrapper());
+    //    shaderFramebuffer->init(textureSize());
+}
+
 #include "ShadertoyQt.h"
 
 #include <QQuickTextDocument>
@@ -27,12 +231,6 @@ limitations under the License.
 
 using namespace oglplus;
 
-QDir CONFIG_DIR;
-static const float ROOT_2 = sqrt(2.0f);
-static const float INV_ROOT_2 = 1.0f / ROOT_2;
-static uvec2 UI_SIZE(1280, 720);
-static float UI_ASPECT = aspect(vec2(UI_SIZE));
-static float UI_INVERSE_ASPECT = 1.0f / UI_ASPECT;
 
 struct Preset {
     const Resource res;
@@ -112,68 +310,10 @@ void MainWindow::stop() {
     uiWindow = nullptr;
 }
 
-void MainWindow::setup() {
-    QRiftWindow::setup();
-
-    renderer.setup(context());
-    // The geometry and shader for rendering the 2D UI surface when needed
-    uiProgram = oria::loadProgram(
-        Resource::SHADERS_TEXTURED_VS,
-        Resource::SHADERS_TEXTURED_FS);
-    uiShape = oria::loadPlane(uiProgram, UI_ASPECT);
-
-    // The geometry and shader for scaling up the rendered shadertoy effect
-    // up to the full offscreen render resolution.  This is then compositied
-    // with the UI window
-    planeProgram = oria::loadProgram(
-        Resource::SHADERS_TEXTURED_VS,
-        Resource::SHADERS_TEXTURED_FS);
-    plane = oria::loadPlane(planeProgram, 1.0);
-
-    mouseTexture = loadCursor(Resource::IMAGES_CURSOR_PNG);
-    mouseShape = oria::loadPlane(uiProgram, UI_INVERSE_ASPECT);
-
-    uiFramebuffer = FramebufferWrapperPtr(new FramebufferWrapper());
-    uiFramebuffer->init(UI_SIZE);
-
-    shaderFramebuffer = FramebufferWrapperPtr(new FramebufferWrapper());
-    shaderFramebuffer->init(textureSize());
-
-    DefaultFramebuffer().Bind(Framebuffer::Target::Draw);
-}
-
 void MainWindow::setupOffscreenUi() {
 #ifdef USE_RIFT
     this->endFrameLock = &uiWindow->renderLock;
 #endif
-    qApp->setFont(QFont("Arial", 14, QFont::Bold));
-    uiWindow->pause();
-    uiWindow->setup(QSize(UI_SIZE.x, UI_SIZE.y), context());
-    {
-        QStringList dataList;
-        foreach(const QString path, PRESETS) {
-            shadertoy::Shader shader = shadertoy::loadShaderFile(path);
-            dataList.append(shader.name);
-        }
-        auto qmlContext = uiWindow->m_qmlEngine->rootContext();
-        qmlContext->setContextProperty("presetsModel", QVariant::fromValue(dataList));
-        QUrl url = QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + "/shaders");
-        qmlContext->setContextProperty("userPresetsFolder", url);
-    }
-    uiWindow->setProxyWindow(this);
-
-    QUrl qml = QUrl("qrc:/layouts/Combined.qml");
-    uiWindow->m_qmlEngine->addImportPath("./qml");
-    uiWindow->m_qmlEngine->addImportPath("./layouts");
-    uiWindow->m_qmlEngine->addImportPath(".");
-    uiWindow->loadQml(qml);
-    connect(uiWindow, &QOffscreenUi::textureUpdated, this, [&](int textureId) {
-        uiWindow->lockTexture(textureId);
-        GLuint oldTexture = exchangeUiTexture(textureId);
-        if (oldTexture) {
-            uiWindow->releaseTexture(oldTexture);
-        }
-    });
 
     QQuickItem * editorControl;
     editorControl = uiWindow->m_rootItem->findChild<QQuickItem*>("shaderTextEdit");
@@ -690,3 +830,4 @@ void MainWindow::onSixDofMotion(const vec3 & tr, const vec3 & mo) {
         // renderer.setPosition( position += tr;
     });
 }
+#endif

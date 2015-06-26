@@ -16,74 +16,113 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 ************************************************************************************/
-#include "QRiftWindow.h"
+#include <QStringList>
+#include <QOpenGLContext>
+#include <QOpenGLDebugLogger>
+#include "display/DisplayPlugins.h"
+
 #include "Shadertoy.h"
 #include "Renderer.h"
+
+class MainWindow : public QQuickItem {
+    Q_OBJECT
+    Q_PROPERTY(QStringList displayPlugins READ displayPlugins CONSTANT)
+public:
+    MainWindow(QQuickItem* parent = nullptr);
+    virtual ~MainWindow();
+
+protected:
+    Q_INVOKABLE void activatePlugin(int index);
+    const QStringList& displayPlugins();
+
+private:
+    void onFrameRequested();
+    void onUiTextureReady(GLuint texture, GLsync sync);
+    void onShaderTextureReady(GLuint texture, GLsync sync);
+
+    QStringList _displayPlugins;
+    OffscreenGlSurface _surface;
+    OffscreenQmlSurface _uiSurface;
+
+    QOpenGLDebugLogger _logger{ nullptr };
+    Plugins::Display::Plugin* _activePlugin{ nullptr };
+
+    /*
+    using AtomicGlTexture = std::atomic<GLuint>;
+    using SyncPair = std::pair<GLuint, GLsync>;
+    using TextureTrashcan = std::queue<SyncPair>;
+    using TextureDeleteQueue = std::vector<GLuint>;
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<Mutex>;
+
+    virtual void setup();
+    virtual void resize();
+    virtual void drawFrame();
+
+    Renderer _renderer;
+
+    // A cache of all the input textures available
+    QDir configPath;
+    QSettings settings;
+
+    //////////////////////////////////////////////////////////////////////////////
+    //
+    // Offscreen UI
+    //
+    //  QOffscreenUi * uiWindow{ new QOffscreenUi() };
+    //  GlslHighlighter highlighter;
+
+    int activePresetIndex{ 0 };
+    float savedEyePosScale{ 1.0f };
+
+    //////////////////////////////////////////////////////////////////////////////
+    //
+    // Shader Rendering information
+    //
+
+    shadertoy::Shader activeShader;
+
+    Renderer renderer;
+
+    // We actually render the shader to one FBO for dynamic framebuffer scaling,
+    // while leaving the actual texture we pass to the Oculus SDK fixed.
+    // This allows us to have a clear UI regardless of the shader performance
+    FramebufferWrapperPtr shaderFramebuffer;
+
+    // The current mouse position as reported by the main thread
+    bool uiVisible{ false };
+    QVariantAnimation animation;
+    float animationValue;
+
+
+    // A wrapper for passing the UI texture from the app to the widget
+    AtomicGlTexture uiTexture{ 0 };
+    TextureTrashcan textureTrash;
+    TextureDeleteQueue textureDeleteQueue;
+    Mutex textureLock;
+    QTimer timer;
+
+    // GLSL and geometry for the UI
+    ProgramPtr uiProgram;
+    ShapeWrapperPtr uiShape;
+    TexturePtr mouseTexture;
+    ShapeWrapperPtr mouseShape;
+
+    // For easy compositing the UI texture and the mouse texture
+    FramebufferWrapperPtr uiFramebuffer;
+
+    // Geometry and shader for rendering the possibly low res shader to the main framebuffer
+    ProgramPtr planeProgram;
+    ShapeWrapperPtr plane;
+    */
+};
+
+/*
 #include "Fetcher.h"
 
 class MainWindow : public QRiftWindow {
   Q_OBJECT
 
-  typedef std::atomic<GLuint> AtomicGlTexture;
-  typedef std::pair<GLuint, GLsync> SyncPair;
-  typedef std::queue<SyncPair> TextureTrashcan;
-  typedef std::vector<GLuint> TextureDeleteQueue;
-  typedef std::mutex Mutex;
-  typedef std::unique_lock<Mutex> Lock;
-
-  // A cache of all the input textures available
-  QDir configPath;
-  QSettings settings;
-
-  //////////////////////////////////////////////////////////////////////////////
-  //
-  // Offscreen UI
-  //
-  QOffscreenUi * uiWindow{ new QOffscreenUi() };
-  GlslHighlighter highlighter;
-
-  int activePresetIndex{ 0 };
-  float savedEyePosScale{ 1.0f };
-
-  //////////////////////////////////////////////////////////////////////////////
-  //
-  // Shader Rendering information
-  //
-
-  shadertoy::Shader activeShader;
-
-  Renderer renderer;
-
-  // We actually render the shader to one FBO for dynamic framebuffer scaling,
-  // while leaving the actual texture we pass to the Oculus SDK fixed.
-  // This allows us to have a clear UI regardless of the shader performance
-  FramebufferWrapperPtr shaderFramebuffer;
-
-  // The current mouse position as reported by the main thread
-  bool uiVisible{ false };
-  QVariantAnimation animation;
-  float animationValue;
-
-
-  // A wrapper for passing the UI texture from the app to the widget
-  AtomicGlTexture uiTexture{ 0 };
-  TextureTrashcan textureTrash;
-  TextureDeleteQueue textureDeleteQueue;
-  Mutex textureLock;
-  QTimer timer;
-
-  // GLSL and geometry for the UI
-  ProgramPtr uiProgram;
-  ShapeWrapperPtr uiShape;
-  TexturePtr mouseTexture;
-  ShapeWrapperPtr mouseShape;
-
-  // For easy compositing the UI texture and the mouse texture
-  FramebufferWrapperPtr uiFramebuffer;
-
-  // Geometry and shader for rendering the possibly low res shader to the main framebuffer
-  ProgramPtr planeProgram;
-  ShapeWrapperPtr plane;
 
   // Measure the FPS for use in dynamic scaling
   GLuint exchangeUiTexture(GLuint newUiTexture) {
@@ -155,3 +194,4 @@ private slots:
 signals:
   void fpsUpdated(float);
 };
+*/

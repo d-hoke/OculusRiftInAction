@@ -3,7 +3,7 @@
 # 
 #
 
-file(GLOB SOURCE_FILES *.cpp *.h)
+file(GLOB_RECURSE SOURCE_FILES *.cpp *.h)
 
 file(GLOB APP_RESOURCES  layouts/* )
 source_group("Resources/Layouts" FILES ${APP_RESOURCES})
@@ -20,6 +20,8 @@ list(APPEND SOURCE_FILES ${APP_RESOURCES})
 file(GLOB QRC *.qrc )
 qt5_add_resources(APP_RCC ${QRC})
 list(APPEND SOURCE_FILES ${APP_RCC} ${APP_RESOURCES})
+
+list(APPEND EXAMPLE_LIBS ExampleDisplay)
 
 make_example2("Examples/Qt" "ShadertoyVR" "${SOURCE_FILES}")
 
