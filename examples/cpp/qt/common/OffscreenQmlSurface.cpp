@@ -87,31 +87,37 @@ void OffscreenQmlSurface::resize(const QSize& newSize) {
     // Qt bug in 5.4 forces this check of pixel ratio,
     // even though we're rendering offscreen.
     qreal pixelRatio = 1.0;
-    _qmlEngine->rootContext()->setContextProperty("surfaceSize", newSize);
+
+    _size = newSize;
+    _qmlEngine->rootContext()->setContextProperty("surfaceSize", _size);
     if (_renderControl && _renderControl->_renderWindow) {
         pixelRatio = _renderControl->_renderWindow->devicePixelRatio();
     } 
-    QSize newOffscreenSize = newSize * pixelRatio;
+    QSize newOffscreenSize = _size * pixelRatio;
     if (newOffscreenSize == _fboCache.getSize()) {
         return;
     }
 
     // Clear out any fbos with the old size
     makeCurrent();
-    qDebug() << "Offscreen UI resizing to " << newSize.width() << "x" << newSize.height() << " with pixel ratio " << pixelRatio;
-    _fboCache.setSize(newSize * pixelRatio);
+    qDebug() << "Offscreen UI resizing to " << _size.width() << "x" << _size.height() << " with pixel ratio " << pixelRatio;
+    _fboCache.setSize(_size * pixelRatio);
 
     if (_quickWindow) {
-        _quickWindow->setGeometry(QRect(QPoint(), newSize));
-        _quickWindow->contentItem()->setSize(newSize);
+        _quickWindow->setGeometry(QRect(QPoint(), _size));
+        _quickWindow->contentItem()->setSize(_size);
     }
 
     // Update our members
     if (_rootItem) {
-        _rootItem->setSize(newSize);
+        _rootItem->setSize(_size);
     }
 
     doneCurrent();
+}
+
+QSize OffscreenQmlSurface::size() {
+    return _size;
 }
 
 QQuickItem* OffscreenQmlSurface::getRootItem() {
@@ -371,4 +377,31 @@ void OffscreenQmlSurface::setProxyWindow(QWindow* window) {
 
 QQuickWindow* OffscreenQmlSurface::getWindow() {
     return _quickWindow;
+}
+
+
+QVariant OffscreenQmlSurface::getItemProperty(const QString & itemName, const QString & property) {
+    QQuickItem * item = _rootItem->findChild<QQuickItem*>(itemName);
+    if (nullptr != item) {
+        return item->property(property.toLocal8Bit());
+    } else {
+        qWarning() << "Could not find item " << itemName << " on which to set property " << property;
+    }
+    return QVariant();
+}
+
+void OffscreenQmlSurface::setItemProperty(const QString & itemName, const QString & property, const QVariant & value) {
+    QQuickItem * item = _rootItem->findChild<QQuickItem*>(itemName);
+    if (nullptr != item) {
+        bool result = item->setProperty(property.toLocal8Bit(), value);
+        if (!result) {
+            qWarning() << "Set property " << property << " on item " << itemName << " returned " << result;
+        }
+    } else {
+        qWarning() << "Could not find item " << itemName << " on which to set property " << property;
+    }
+}
+
+void OffscreenQmlSurface::setItemText(const QString & itemName, const QString & text) {
+    setItemProperty(itemName, "text", text);
 }

@@ -35,6 +35,9 @@ struct FramebufferWrapper {
   }
 
   void init(const glm::uvec2 & size) {
+    if (this->size == size) {
+        return;
+    }
     using namespace oglplus;
     this->size = size;
     Context::Bound(Texture::Target::_2D, color)

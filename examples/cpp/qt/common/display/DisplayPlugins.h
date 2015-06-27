@@ -20,7 +20,7 @@ limitations under the License.
 #pragma once
 #include <glm/glm.hpp>
 #include <QOpenGLContext>
-
+#include <QWindow>
 namespace Plugins {
 
 class Plugin {
@@ -57,7 +57,7 @@ class Plugin {
             HMD,
         };
 
-        enum class Eye {
+        enum Eye {
             LEFT,
             RIGHT,
             MONO
@@ -68,9 +68,13 @@ class Plugin {
         public:
             virtual Type type() const = 0;
             virtual glm::uvec2 preferredSurfaceSize() const = 0;
-            virtual glm::uvec2 preferredUiSize() const = 0;
+
+            virtual glm::uvec2 preferredUiSize() const {
+                return preferredSurfaceSize();
+            }
             virtual void setShareContext(QOpenGLContext* context) {};
-            virtual QOpenGLContext* context() { return nullptr; };
+            virtual QOpenGLContext* context() { return nullptr; }
+            virtual QWindow* window() = 0;
             virtual void preRender() = 0;
             virtual void render(
                     uint32_t sceneTexture, const glm::uvec2& textureSize,
@@ -87,6 +91,7 @@ class Plugin {
 
         signals:
             void requestFrame();
+            void sizeChanged();
         };
 
         /// returns a null terminated array of display plugins supported on this system

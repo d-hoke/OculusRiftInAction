@@ -22,7 +22,7 @@ public:
     virtual void setShareContext(QOpenGLContext* context) override { _shareContext = context; };
     virtual QOpenGLContext* context() override { return _context; };
     virtual Plugins::Display::Type type() const override { return Type::_2D; }
-
+    virtual QWindow* window() override { return _window; }
     virtual glm::uvec2 preferredSurfaceSize() const override;
     virtual glm::uvec2 preferredUiSize() const override;
 
@@ -40,10 +40,7 @@ private:
     // GLSL and geometry for the UI
     ProgramPtr _program;
     ShapeWrapperPtr _quad;
-    TexturePtr _testTexture;
 };
-
-static QSurfaceFormat SURFACE_FORMAT;
 
 WindowDisplayPlugin::WindowDisplayPlugin() {
     connect(&_timer, &QTimer::timeout, this, &WindowDisplayPlugin::requestFrame);
@@ -58,9 +55,6 @@ const char* WindowDisplayPlugin::name() const {
 }
 
 bool WindowDisplayPlugin::init() {
-    SURFACE_FORMAT.setMajorVersion(4);
-    SURFACE_FORMAT.setMinorVersion(3);
-    SURFACE_FORMAT.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
     return true;
 }
 
@@ -78,17 +72,27 @@ bool WindowDisplayPlugin::start() {
     _context->setShareContext(_shareContext);
     _context->create();
    
+    connect(_window, &QWindow::widthChanged, this, &WindowDisplayPlugin::sizeChanged);
+    connect(_window, &QWindow::heightChanged, this, &WindowDisplayPlugin::sizeChanged);
+
     _window->show();
+    _window->setGeometry(QRect(100, -800, 1280, 720));
 
     bool result = _context->makeCurrent(_window);
     Q_ASSERT(result);
+    {
+        // The geometry and shader for rendering the 2D UI surface when needed
+        _program = oria::loadProgram(
+            Resource::SHADERS_TEXTURED_VS,
+            Resource::SHADERS_TEXTURED_FS);
+        _quad = oria::loadPlane(_program, 1.0f);
 
-    // The geometry and shader for rendering the 2D UI surface when needed
-    _program = oria::loadProgram(
-        Resource::SHADERS_TEXTURED_VS,
-        Resource::SHADERS_TEXTURED_FS);
-    _quad = oria::loadPlane(_program, 1.0f);
-    _testTexture = oria::load2dTexture(Resource::IMAGES_CUBE_TEXTURE_PNG);
+        glClearColor(0, 1, 1, 1);
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    }
+    _context->doneCurrent();
 
     _timer.start(0);
     return true;
@@ -125,14 +129,17 @@ void WindowDisplayPlugin::preRender() {
 void WindowDisplayPlugin::render(
     uint32_t sceneTexture, const glm::uvec2& textureSize,
     uint32_t uiTexture, const glm::uvec2& uiSize, const glm::mat4& uiView) {
-    glGetError();
-    glClearColor(0, 1, 1, 1);
     glClear(GL_COLOR_BUFFER_BIT);
     auto size = _window->size();
     glViewport(0, 0, size.width(), size.height());
-
-    _testTexture->Bind(oglplus::Texture::Target::_2D);
-    oria::renderGeometry(_quad, _program);
+    if (sceneTexture) {
+        glBindTexture(GL_TEXTURE_2D, sceneTexture);
+        oria::renderGeometry(_quad, _program);
+    }
+    if (uiTexture) {
+        glBindTexture(GL_TEXTURE_2D, uiTexture);
+        oria::renderGeometry(_quad, _program);
+    }
 }
 
 void WindowDisplayPlugin::postRender() {
@@ -143,3 +150,4 @@ void WindowDisplayPlugin::postRender() {
 Plugins::Display::Plugin* buildWindowPlugin() {
     return new WindowDisplayPlugin();
 }
+

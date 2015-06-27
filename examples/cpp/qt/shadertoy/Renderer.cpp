@@ -23,8 +23,9 @@ limitations under the License.
 
 using namespace oglplus;
 
-void Renderer::setup(QOpenGLContext * context) {
-    this->context = context;
+void Renderer::setup() {
+    Q_ASSERT(QOpenGLContext::currentContext());
+
     initTextureCache();
 
     setShaderSourceInternal(readFileToString(":/shaders/default.fs"));
@@ -32,7 +33,6 @@ void Renderer::setup(QOpenGLContext * context) {
     skybox = oria::loadSkybox(shadertoyProgram);
 
     Platform::addShutdownHook([&] {
-        textureCache.clear();
         shadertoyProgram.reset();
         vertexShader.reset();
         fragmentShader.reset();
@@ -43,6 +43,9 @@ void Renderer::setup(QOpenGLContext * context) {
 void Renderer::initTextureCache() {
     using namespace shadertoy;
     QRegExp re("(tex|cube)(\\d+)(_0)?\\.(png|jpg)");
+    Platform::addShutdownHook([&] {
+        textureCache.clear();
+    });
 
     for (int i = 0; i < TEXTURES.size(); ++i) {
         QString path = TEXTURES.at(i);
@@ -99,7 +102,6 @@ void Renderer::initTextureCache() {
 }
 
 void Renderer::render() {
-    Context::Clear().ColorBuffer();
     if (!shadertoyProgram) {
         return;
     }
@@ -121,11 +123,11 @@ void Renderer::updateUniforms() {
     typedef std::map<std::string, GLuint> Map;
     Map activeUniforms = oria::getActiveUniforms(shadertoyProgram);
     shadertoyProgram->Bind();
-    //    UNIFORM_DATE;
+    // UNIFORM_DATE;
     for (int i = 0; i < 4; ++i) {
         const char * uniformName = shadertoy::UNIFORM_CHANNELS[i];
         if (activeUniforms.count(uniformName)) {
-            context->functions()->glUniform1i(activeUniforms[uniformName], i);
+            QOpenGLContext::currentContext()->functions()->glUniform1i(activeUniforms[uniformName], i);
         }
         if (channels[i].texture) {
             if (activeUniforms.count(UNIFORM_CHANNEL_RESOLUTIONS[i])) {
@@ -134,7 +136,6 @@ void Renderer::updateUniforms() {
 
         }
     }
-    NoProgram().Bind();
 
     uniformLambdas.clear();
     if (activeUniforms.count(UNIFORM_GLOBALTIME)) {
@@ -150,13 +151,11 @@ void Renderer::updateUniforms() {
         });
     }
 
-#ifdef USE_RIFT
     if (activeUniforms.count(shadertoy::UNIFORM_POSITION)) {
         uniformLambdas.push_back([&] {
             Uniform<vec3>(*shadertoyProgram, shadertoy::UNIFORM_POSITION).Set(position);
         });
     }
-#endif
 
     for (int i = 0; i < 4; ++i) {
         if (activeUniforms.count(UNIFORM_CHANNELS[i]) && channels[i].texture) {

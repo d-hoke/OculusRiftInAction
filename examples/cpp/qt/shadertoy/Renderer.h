@@ -35,7 +35,7 @@ class Renderer : public QObject {
     };
 
 public:
-    void setup(QOpenGLContext * context);
+    void setup();
     void render();
     void updateUniforms();
 
@@ -68,15 +68,12 @@ signals:
     void compileSuccess();
 
 protected:
-    void loop();
+    void initTextureCache();
 
     typedef std::map<QString, TextureData> TextureMap;
     typedef std::map<QString, QString> CanonicalPathMap;
     CanonicalPathMap canonicalPathMap;
     TextureMap textureCache;
-
-    QOpenGLContext * context;
-
     // The currently active input channels
     Channel channels[4];
     QString channelSources[4];
@@ -106,8 +103,4 @@ protected:
     // The compiled shadertoy program
     ProgramPtr shadertoyProgram;
 
-    void initTextureCache();
-    LambdaThread _renderThread;
-    TaskQueueWrapper _tasks;
-    bool _shutdown{ false };
 };

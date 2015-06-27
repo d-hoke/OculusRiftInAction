@@ -47,10 +47,15 @@ public:
 
     void create(QOpenGLContext* context);
     void resize(const QSize& size);
+    QSize size();
     QObject* load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     QObject* load(const QString& qmlSourceFile, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}) {
         return load(QUrl(qmlSourceFile), f);
     }
+
+    QVariant getItemProperty(const QString & itemName, const QString & property);
+    void setItemProperty(const QString & itemName, const QString & property, const QVariant & value);
+    void setItemText(const QString & itemName, const QString & text);
 
     // Optional values for event handling
     void setProxyWindow(QWindow* window);
@@ -65,6 +70,7 @@ public:
     void setBaseUrl(const QUrl& baseUrl);
     QQuickItem* getRootItem();
     QQuickWindow* getWindow();
+    QQmlEngine* getEngine() { return _qmlEngine;  }
 
     virtual bool eventFilter(QObject* originalDestination, QEvent* event);
 
@@ -93,6 +99,7 @@ private:
     QQmlComponent* _qmlComponent{ nullptr };
     QQuickItem* _rootItem{ nullptr };
     QTimer _updateTimer;
+    QSize _size;
     FboCache _fboCache;
     bool _polish{ true };
     bool _paused{ true };
