@@ -55,7 +55,9 @@
         <file>shaders/default.fs</file>
         <file>shaders/default.vs</file>
         <file>layouts/ChannelSelect.qml</file>
+        <file>layouts/ChannelsColumn.qml</file>
         <file>layouts/Combined.qml</file>
+        <file>layouts/CodeEditor.qml</file>
         <file>layouts/CustomBorder.qml</file>
         <file>layouts/CustomButton.qml</file>
         <file>layouts/CustomText.qml</file>

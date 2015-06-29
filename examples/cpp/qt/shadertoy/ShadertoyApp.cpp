@@ -1,6 +1,9 @@
 #include "QtCommon.h"
 #include "ShadertoyApp.h"
 #include <QQmlContext>
+#include "CodeEditor.h"
+#include "ChannelsColumn.h"
+#include "GlslEditor.h"
 
 using namespace oglplus;
 using namespace Plugins::Display;
@@ -188,6 +191,8 @@ void ShadertoyApp::shutdownLogging() {
 
 void ShadertoyApp::initTypes() {
     qmlRegisterType<MainWindow>("ShadertoyVR", 1, 0, "MainWindow");
+    qmlRegisterType<CodeEditor>("ShadertoyVR", 1, 0, "CodeEditor");
+    qmlRegisterType<ChannelsColumn>("ShadertoyVR", 1, 0, "ChannelsColumn");
 }
 
 void ShadertoyApp::initUi() {
@@ -238,12 +243,12 @@ void ShadertoyApp::setupOffscreenUi() {
 
     QQuickItem * editorControl;
     auto rootItem = _uiSurface.getRootItem();
-    editorControl = rootItem->findChild<QQuickItem*>("shaderTextEdit");
-    //if (editorControl) {
-    //    highlighter.setDocument(
-    //        editorControl->property("textDocument").value<QQuickTextDocument*>()->textDocument());
-    //}
-
+    _codeEditor = rootItem->findChild<CodeEditor*>();
+    _codeEditor->setHighlighter(new GlslHighlighter());
+    _codeEditor->setText("Test text");
+    _codeEditor->setErrorText("Test error text");
+    
+    /*
     QObject::connect(rootItem, SIGNAL(toggleUi()),
         this, SLOT(onToggleUi()));
     QObject::connect(rootItem, SIGNAL(channelTextureChanged(int, int, QString)),
@@ -284,7 +289,7 @@ void ShadertoyApp::setupOffscreenUi() {
         this, SLOT(onNewShaderHighlighted(QString)));
     QObject::connect(rootItem, SIGNAL(newPresetHighlighted(int)),
         this, SLOT(onNewPresetHighlighted(int)));
-
+    */
     _uiSurface.resume();
 }
 
@@ -544,8 +549,6 @@ void MainWindow::stop() {
     uiWindow = nullptr;
 }
 
-void MainWindow::setupOffscreenUi() {
-}
 
 QVariant MainWindow::getItemProperty(const QString & itemName, const QString & property) {
     QQuickItem * item = rootItem->findChild<QQuickItem*>(itemName);

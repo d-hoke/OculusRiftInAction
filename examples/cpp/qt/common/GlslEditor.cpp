@@ -210,17 +210,3 @@ void GlslHighlighter::highlightBlock(const QString &text) {
 }
 //! [11]
 
-GlslEditor::GlslEditor(QWidget *parent) {
-   setFont(QFont("Courier", 12));
-   highlighter.setDocument(document());
-   lineNumberArea = new LineNumberArea(this);
-
-   connect(this, SIGNAL(blockCountChanged(int)), this, SLOT(updateLineNumberAreaWidth(int)));
-   connect(this, SIGNAL(updateRequest(QRect, int)), this, SLOT(updateLineNumberArea(QRect, int)));
-   connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(highlightCurrentLine()));
-
-   updateLineNumberAreaWidth(0);
-   highlightCurrentLine();
-}
-
-#include "moc_GlslEditor.cpp"

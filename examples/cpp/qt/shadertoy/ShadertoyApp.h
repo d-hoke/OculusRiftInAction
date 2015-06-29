@@ -1,7 +1,9 @@
 #pragma once
 #include <QGuiApplication>
-#include "MainWindow.h"
 #include <QQuickView>
+
+#include "MainWindow.h"
+#include "CodeEditor.h"
 
 class ShadertoyApp : public QGuiApplication {
     Q_OBJECT
@@ -32,12 +34,40 @@ private slots:
     void onFrameRequested();
     void onUiTextureReady(GLuint texture, GLsync sync);
     void onSizeChanged();
-    void onShaderTextureReady(GLuint texture, GLsync sync);
+//    void onShaderTextureReady(GLuint texture, GLsync sync);
+
+    void onToggleUi();
+    void onLoadNextPreset();
+    void onLoadPreviousPreset();
+    void onFontSizeChanged(int newSize);
+
+    void onLoadPreset(int index);
+
+    void onLoadShaderFile(const QString & shaderPath);
+
+    void onNewShaderFilepath(const QString & shaderPath);
+    void onNewShaderHighlighted(const QString & shaderPath);
+    void onNewPresetHighlighted(int presetId);
+
+    void onSaveShaderXml(const QString & shaderPath);
+    void onChannelTextureChanged(const int & channelIndex, const int & channelType, const QString & texturePath);
+    void onShaderSourceChanged(const QString & shaderSource);
+    void onRecenterPosition();
+    void onModifyTextureResolution(double scale);
+    void onModifyPositionScale(double scale);
+    void onResetPositionScale();
+    void onToggleEyePerFrame();
+    void onEpfModeChanged(bool checked);
+    void onRestartShader();
+    void onShutdown();
+    void onTimer();
+    void onSixDofMotion(const vec3 & tr, const vec3 & mo);
 
 private:
     Renderer _renderer;
     OffscreenGlSurface _surface;
     OffscreenQmlSurface _uiSurface;
+    CodeEditor* _codeEditor{ nullptr };
     QOpenGLDebugLogger _logger{ nullptr };
     Plugins::Display::Plugin* _activePlugin{ nullptr };
     QVariantAnimation animation;
@@ -163,31 +193,6 @@ private:
   //
   void perFrameRender();
   void perEyeRender();
-
-
-private slots:
-  void onToggleUi();
-  void onLoadNextPreset();
-  void onFontSizeChanged(int newSize);
-  void onLoadPreviousPreset();
-  void onLoadPreset(int index);
-  void onLoadShaderFile(const QString & shaderPath);
-  void onNewShaderFilepath(const QString & shaderPath);
-  void onNewShaderHighlighted(const QString & shaderPath);
-  void onNewPresetHighlighted(int presetId);
-  void onSaveShaderXml(const QString & shaderPath);
-  void onChannelTextureChanged(const int & channelIndex, const int & channelType, const QString & texturePath);
-  void onShaderSourceChanged(const QString & shaderSource);
-  void onRecenterPosition();
-  void onModifyTextureResolution(double scale);
-  void onModifyPositionScale(double scale);
-  void onResetPositionScale();
-  void onToggleEyePerFrame();
-  void onEpfModeChanged(bool checked);
-  void onRestartShader();
-  void onShutdown();
-  void onTimer();
-  void onSixDofMotion(const vec3 & tr, const vec3 & mo);
 
 signals:
   void fpsUpdated(float);

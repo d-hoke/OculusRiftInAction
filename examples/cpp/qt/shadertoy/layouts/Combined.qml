@@ -8,7 +8,6 @@ Item {
     height: 720
     FontLoader { id: tronFont; source: "fonts/uifont.ttf" }
     property int activeChannel: -1
-    property alias text: editor.text
 
     signal channelTextureChanged(int channel, int type, string url)
     signal shaderSourceChanged(string shaderSource)

@@ -9,7 +9,6 @@ Rectangle {
     width: 1280
     height: 720
     color: "#00000000"
-    property alias text: shaderTextEdit.text
     function setChannelIcon(channel, path) {
         var channelItem;
         switch(channel) {
@@ -29,6 +28,10 @@ Rectangle {
         if (channelItem) {
             channelItem.source = path;
         }
+    }
+
+    ChannelsColumn {
+
     }
 
     Column {
@@ -115,109 +118,18 @@ Rectangle {
         }
     }
 
-    CustomBorder {
-        id: textFrame
-        objectName: "shaderTextFrame"
-        property int errorMargin: 0
-        anchors.bottom: errorFrame.top
-        anchors.bottomMargin: errorMargin
-        anchors.left: channelColumn.right
-        anchors.leftMargin: 8
-        anchors.right: infoColumn.left
-        anchors.rightMargin: 8
+    CodeEditor {
+        id: codeFrame
         anchors.top: parent.top
         anchors.topMargin: 0
-
-        TextArea {
-            id: shaderTextEdit
-            objectName: "shaderTextEdit"
-            style: TextAreaStyle {
-                backgroundColor: "#00000000"
-                textColor: "white"
-            }
-            font.family: "Lucida Console"
-            font.pointSize: 14
-            text: qsTr("Text Edit")
-            anchors.rightMargin: parent.margin
-            anchors.leftMargin: parent.margin + lineColumn.width
-            anchors.bottomMargin: parent.margin
-            anchors.topMargin: parent.margin
-            anchors.fill: parent
-            focus: true
-            wrapMode: TextEdit.NoWrap
-            frameVisible: false
-            Settings {
-                property alias fontSize: shaderTextEdit.font.pointSize
-            }
-
-        }
-
-        Rectangle {
-            id: lineColumn
-            property int rowHeight: shaderTextEdit.font.pixelSize + 1
-            color: "#222"
-            width: 48
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            anchors.rightMargin: parent.margin
-            anchors.leftMargin: parent.margin
-            anchors.bottomMargin: parent.margin
-            anchors.topMargin: parent.margin
-            clip: true
-            Rectangle {
-                height: parent.height
-                anchors.right: parent.right
-                width: 1
-                color: "#ddd"
-            }
-            Column {
-                y: -shaderTextEdit.flickableItem.contentY + 4
-                width: parent.width
-                Repeater {
-                    model: Math.max(shaderTextEdit.lineCount + 2, (lineColumn.height/lineColumn.rowHeight) )
-                    delegate: Text {
-                        id: text
-                        color: "lightsteelblue"
-                        font: shaderTextEdit.font
-                        width: lineColumn.width
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        height: lineColumn.rowHeight
-                        renderType: Text.NativeRendering
-                        text: index + 1
-                    }
-                }
-            }
-        }
-    }
-
-    CustomBorder {
-        id: errorFrame
-        objectName: "errorFrame"
-        height: 0
         anchors.bottom: buttonArea.top
-        anchors.bottomMargin: 16
+        anchors.bottomMargin: 8
         anchors.left: channelColumn.right
         anchors.leftMargin: 8
         anchors.right: infoColumn.left
         anchors.rightMargin: 8
-        TextArea {
-            id: compileErrors
-            objectName: "compileErrors"
-            style: TextAreaStyle {
-                backgroundColor: "#00000000"
-                textColor: "red"
-            }
-            font.family: "Lucida Console"
-            font.pixelSize: 14
-            text: qsTr("Text Edit")
-            anchors.margins: parent.margin
-            anchors.fill: parent
-            wrapMode: TextEdit.NoWrap
-            frameVisible: false
-        }
     }
+
 
     CustomBorder {
         id: infoColumn
@@ -262,10 +174,8 @@ Rectangle {
         height: 64
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 8
-        anchors.left: textFrame.left
-        anchors.leftMargin: 0
-        anchors.right: textFrame.right
-        anchors.rightMargin: 0
+        anchors.left: codeFrame.left
+        anchors.right: codeFrame.right
         Row {
             height: parent.height
             anchors.right: parent.right

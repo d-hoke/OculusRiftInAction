@@ -101,7 +101,7 @@ inline float aspect(const glm::vec2 & v) {
 #include "opengl/GlUtils.h"
 
 #ifndef TAU
-#define TAU 6.28318530718
+#define TAU 6.28318530718f
 #endif
 
 #ifndef HALF_TAU

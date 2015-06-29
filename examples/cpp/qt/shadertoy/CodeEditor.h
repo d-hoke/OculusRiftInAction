@@ -19,12 +19,25 @@ limitations under the License.
 #pragma once
 
 #include <QQuickItem>
+#include <QQuickTextDocument>
+#include <QSyntaxHighlighter>
 
-class EditWindow : public QQuickItem {
+class CodeEditor : public QQuickItem {
     Q_OBJECT
 
+
 public:
-    EditWindow(QQuickItem* parent = nullptr);
-    virtual ~EditWindow();
+    CodeEditor(QQuickItem* parent = nullptr);
+    virtual ~CodeEditor();
+
+    virtual void setHighlighter(QSyntaxHighlighter* highlighter);
+    virtual void setText(const QString& text);
+    virtual void setErrorText(const QString& text);
+
+private:
+    QQuickItem* getTextArea();
+    QQuickItem* getErrorTextArea();
+
+    QSyntaxHighlighter* _highlighter{ nullptr };
 
 };
