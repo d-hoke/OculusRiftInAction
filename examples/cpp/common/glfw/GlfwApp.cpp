@@ -51,6 +51,11 @@ void ScrollCallback(GLFWwindow * window, double x, double y) {
   instance->onScroll(x, y);
 }
 
+void SizeCallback(GLFWwindow* window, int w, int h) {
+    GlfwApp * instance = (GlfwApp *)glfwGetWindowUserPointer(window);
+    instance->onSized(uvec2(w, h));
+}
+
 void ErrorCallback(int error, const char* description) {
   FAIL(description);
 }
@@ -130,9 +135,8 @@ void GlfwApp::preCreate() {
 
 void GlfwApp::postCreate()  {
   glfwMakeContextCurrent(window);
-  windowAspect = aspect(windowSize);
-  windowAspectInverse = 1.0f / windowAspect;
   glfwSetWindowUserPointer(window, this);
+  glfwSetWindowSizeCallback(window, SizeCallback);
   glfwSetKeyCallback(window, KeyCallback);
   glfwSetMouseButtonCallback(window, MouseButtonCallback);
   glfwSetCursorPosCallback(window, MouseMoveCallback);
@@ -140,6 +144,7 @@ void GlfwApp::postCreate()  {
   glfwSetCharCallback(window, CharacterCallback);
   glfwSetScrollCallback(window, ScrollCallback);
   glfwSwapInterval(1);
+  onSized(windowSize);
 
   // Initialize the OpenGL bindings
   // For some reason we have to set this expermiental flag to properly
@@ -244,4 +249,11 @@ void GlfwApp::renderStringAt(const std::string & str, const glm::vec2 & pos) {
   oria::renderString(str, cursor, 18.0f);
   pr.pop();
   mv.pop();
+}
+
+void GlfwApp::onSized(const glm::uvec2& newSize) {
+    windowSize = newSize;
+    windowAspect = aspect(windowSize);
+    windowAspectInverse = 1.0f / windowAspect;
+    glViewport(0, 0, windowSize.x, windowSize.y);
 }

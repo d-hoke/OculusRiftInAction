@@ -58,6 +58,7 @@ protected:
   virtual void onMouseButton(int button, int action, int mods);
   virtual void onMouseMove(double x, double y);
   virtual void onMouseEnter(int entered);
+  virtual void onSized(const glm::uvec2& size);
   virtual void update();
   virtual void viewport(const glm::uvec2 & size, const glm::ivec2 & pos = ivec2(0));
   virtual void viewport(const glm::vec2 & size, const glm::vec2 & pos = vec2(0));
@@ -67,6 +68,7 @@ protected:
 private:
 
   friend void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+  friend void SizeCallback(GLFWwindow* window, int w, int h);
   friend void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
   friend void CursorEnterCallback(GLFWwindow* window, int enter);
   friend void MouseMoveCallback(GLFWwindow* window, double x, double y);

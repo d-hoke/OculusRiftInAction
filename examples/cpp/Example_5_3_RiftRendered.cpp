@@ -18,7 +18,7 @@ public:
     ipd = ovrHmd_GetFloat(hmd, OVR_KEY_IPD, ipd);
 
     Stacks::modelview().top() = glm::lookAt(
-      vec3(0, eyeHeight, 0.5f),
+      vec3(0, eyeHeight, 0.2f),
       vec3(0, eyeHeight, 0),
       Vectors::UP);
   }
