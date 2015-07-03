@@ -218,7 +218,6 @@ void ShadertoyApp::setupGlContext() {
 void ShadertoyApp::setupOffscreenUi() {
     _uiSurface.pause();
     _uiSurface.create(_surface.context());
-    _uiSurface.resize(QSize(UI_SIZE.x, UI_SIZE.y));
     {
         QStringList dataList;
         foreach(const QString path, PRESETS) {
@@ -241,7 +240,6 @@ void ShadertoyApp::setupOffscreenUi() {
         onUiTextureReady(textureId, 0);
     });
 
-    QQuickItem * editorControl;
     auto rootItem = _uiSurface.getRootItem();
     _codeEditor = rootItem->findChild<CodeEditor*>();
     _codeEditor->setHighlighter(new GlslHighlighter());
@@ -301,27 +299,105 @@ void ShadertoyApp::setupRenderer() {
 //    _renderer.start();
 
     QObject::connect(&_renderer, &Renderer::compileSuccess, this, [&] {
-        _uiSurface.setItemProperty("errorFrame", "height", 0);
-        _uiSurface.setItemProperty("errorFrame", "visible", false);
-        _uiSurface.setItemProperty("compileErrors", "text", "");
-        _uiSurface.setItemProperty("shaderTextFrame", "errorMargin", 0);
+        _codeEditor->setErrorText("");
     });
 
     QObject::connect(&_renderer, &Renderer::compileError, this, [&](const QString& errors) {
-        _uiSurface.setItemProperty("errorFrame", "height", 128);
-        _uiSurface.setItemProperty("errorFrame", "visible", true);
-        _uiSurface.setItemProperty("compileErrors", "text", errors);
-        _uiSurface.setItemProperty("shaderTextFrame", "errorMargin", 8);
+        _codeEditor->setErrorText(errors);
     });
 
     QObject::connect(&animation, &QVariantAnimation::valueChanged, this, [&](const QVariant & val) {
         animationValue = val.toFloat();
     });
 
-    //connect(this, &MainWindow::fpsUpdated, this, [&](float fps) {
+    //connect(this, &ShadertoyApp::fpsUpdated, this, [&](float fps) {
     //    _uiSurface.setItemText("fps", QString().sprintf("%0.0f", fps));
     //});
     //_uiSurface.setItemText("res", QString().sprintf("%0.2f", texRes));
+}
+
+bool ShadertoyApp::eventFilter(QObject* receiver, QEvent* event) {
+    if (event->type() == QEvent::KeyRelease) {
+        QKeyEvent* ke = static_cast<QKeyEvent*>(event);
+        switch (ke->key()) {
+        case Qt::Key_Q:
+            if (ke->modifiers() & Qt::ControlModifier) {
+                quit();
+                return true;
+            }
+            break;
+
+        case Qt::Key_Escape:
+        case Qt::Key_F1:
+            toggleUi();
+            return true;
+
+        case Qt::Key_F3:
+            toggleEyePerFrame();
+            return true;
+
+        case Qt::Key_F4:
+            if (ke->modifiers() == Qt::ShiftModifier) {
+                restartShader();
+            } else {
+                buildShader();
+            }
+            break;
+
+        case Qt::Key_F5:
+            //if (Qt::ShiftModifier == ke->modifiers()) {
+            //    modifyPositionScale(Math.SQRT1_2);
+            //} else {
+            //    modifyTextureResolution(Math.SQRT1_2);
+            //}
+            break;
+
+        case Qt::Key_F6:
+            //if (Qt::ShiftModifier == ke->modifiers()) {
+            //    resetPositionScale();
+            //} else {
+            //    modifyTextureResolution(0.95);
+            //}
+            break;
+
+        case Qt::Key_F7:
+            //if (Qt::ShiftModifier == ke->modifiers()) {
+            //    resetPositionScale();
+            //} else {
+            //    modifyTextureResolution(1.05);
+            //}
+            break;
+
+        case Qt::Key_F8:
+            //if (Qt::ShiftModifier == ke->modifiers()) {
+            //    modifyPositionScale(Math.SQRT2);
+            //} else {
+            //    modifyTextureResolution(Math.SQRT2);
+            //}
+            break;
+
+        case Qt::Key_F9:
+            loadPreviousPreset();
+            break;
+
+        case Qt::Key_F10:
+            loadNextPreset();
+            break;
+
+        case Qt::Key_F11:
+            //saveShader();
+            break;
+
+        case Qt::Key_F2:
+        case Qt::Key_F12:
+            recenterPose();
+            break;
+
+        default:
+            break;
+        }
+    }
+    return false;
 }
 
 void ShadertoyApp::activatePlugin(int index) {
@@ -349,6 +425,7 @@ void ShadertoyApp::activatePlugin(int index) {
 
     if (window) {
         window->installEventFilter(&_uiSurface);
+        window->installEventFilter(this);
     }
 
     connect(
@@ -382,10 +459,6 @@ void ShadertoyApp::onUiTextureReady(GLuint texture, GLsync sync) {
     _uiTextureContainer.texture = texture;
     _uiTextureContainer.writeSync = sync;
     _uiTextureContainer.lock.unlock();
-}
-
-
-void ShadertoyApp::onShaderTextureReady(GLuint texture, GLsync sync) {
 }
 
 void ShadertoyApp::onFrameRequested() {
@@ -439,7 +512,7 @@ void ShadertoyApp::onFrameRequested() {
 //riftRenderWidget->makeCurrent();
 //delete riftRenderWidget;
 
-//void MainWindow::renderLoop() {
+//void ShadertoyApp::renderLoop() {
 //    _context.makeCurrent(&_surface);
 //
 //    glewExperimental = true;
@@ -466,44 +539,109 @@ void ShadertoyApp::onFrameRequested() {
 //    _context.moveToThread(QCoreApplication::instance()->thread());
 //}
 
+void ShadertoyApp::toggleUi() {
+    bool uiVisible = _uiSurface.isPaused();
+    _uiSurface.setItemProperty("shaderTextEdit", "readOnly", !uiVisible);
+    if (uiVisible) {
+        animation.stop();
+        animation.setStartValue(0.0);
+        animation.setEndValue(1.0);
+        animation.setEasingCurve(QEasingCurve::OutBack);
+        animation.setDuration(500);
+        animation.start();
+        savedEyeOffsetScale = eyeOffsetScale;
+        eyeOffsetScale = 0.0f;
+        _uiSurface.resume();
+    } else {
+        animation.stop();
+        animation.setStartValue(1.0);
+        animation.setEndValue(0.0);
+        animation.setEasingCurve(QEasingCurve::InBack);
+        animation.setDuration(500);
+        animation.start();
+        eyeOffsetScale = savedEyeOffsetScale;
+        _uiSurface.pause();
+    }
+}
+
+void ShadertoyApp::recenterPose() {
+    _activePlugin->resetPose();
+}
+
+void ShadertoyApp::queueRenderThreadTask(std::function<void()> f) {
+    f();
+}
+
+void ShadertoyApp::toggleEyePerFrame() {
+//#ifdef USE_RIFT
+//    onEpfModeChanged(!eyePerFrameMode);
+//#endif
+//    bool newEyePerFrameMode = checked;
+//#ifdef USE_RIFT
+//    queueRenderThreadTask([&, newEyePerFrameMode] {
+//        eyePerFrameMode = newEyePerFrameMode;
+//    });
+//#endif
+//    setItemProperty("epf", "checked", newEyePerFrameMode);
+}
+
+void ShadertoyApp::restartShader() {
+    queueRenderThreadTask([&] {
+        _renderer.restart();
+    });
+}
+
+
+void ShadertoyApp::loadShader(const shadertoy::Shader & shader) {
+    assert(!shader.fragmentSource.isEmpty());
+//    _activeShader = shader;
+    _codeEditor->setText(QString(shader.fragmentSource).replace(QString("\t"), QString("  ")));
+    _uiSurface.setItemText("shaderName", shader.name);
+    for (int i = 0; i < 4; ++i) {
+        QString texturePath = _renderer.canonicalTexturePath(shader.channelTextures[i]);
+        qDebug() << "Setting channel " << i << " to texture " << texturePath;
+        _uiSurface.setItemProperty(QString().sprintf("channel%d", i), "source", "qrc:" + texturePath);
+    }
+
+    // FIXME update the channel texture buttons
+    queueRenderThreadTask([&, shader] {
+        _renderer.setShaderInternal(shader);
+        _renderer.updateUniforms();
+    });
+}
+
+void ShadertoyApp::loadShaderFile(const QString & file) {
+    qDebug() << "Loading shader from " << file;
+    loadShader(shadertoy::loadShaderFile(file));
+}
+
+static int activePresetIndex = 0;
+void ShadertoyApp::loadNextPreset() {
+    static const int PRESETS_SIZE = PRESETS.size();
+    int newPreset = (activePresetIndex + 1) % PRESETS_SIZE;
+    loadPreset(newPreset);
+}
+
+void ShadertoyApp::loadPreviousPreset() {
+    static const int PRESETS_SIZE = PRESETS.size();
+    int newPreset = (activePresetIndex + PRESETS_SIZE - 1) % PRESETS_SIZE;
+    loadPreset(newPreset);
+}
+
+void ShadertoyApp::loadPreset(int index) {
+    activePresetIndex = index;
+    loadShader(shadertoy::loadShaderFile(PRESETS.at(index)));
+}
+
+void ShadertoyApp::buildShader() {
+    QString shaderSource = _codeEditor->text();
+    queueRenderThreadTask([=] {
+        _renderer.setShaderSourceInternal(shaderSource);
+        _renderer.updateUniforms();
+    });
+}
 
 #if 0
-void MainWindow::setup() {
-    _renderer.setup(&_context);
-    // The geometry and shader for rendering the 2D UI surface when needed
-    uiProgram = oria::loadProgram(
-        Resource::SHADERS_TEXTURED_VS,
-        Resource::SHADERS_TEXTURED_FS);
-    uiShape = oria::loadPlane(uiProgram, UI_ASPECT);
-
-    // The geometry and shader for scaling up the rendered shadertoy effect
-    // up to the full offscreen render resolution.  This is then compositied
-    // with the UI window
-    planeProgram = oria::loadProgram(
-        Resource::SHADERS_TEXTURED_VS,
-        Resource::SHADERS_TEXTURED_FS);
-    plane = oria::loadPlane(planeProgram, 1.0);
-
-    mouseTexture = loadCursor(Resource::IMAGES_CURSOR_PNG);
-    mouseShape = oria::loadPlane(uiProgram, UI_INVERSE_ASPECT);
-
-    resize();
-}
-
-void MainWindow::resize() {
-    uiFramebuffer = FramebufferWrapperPtr(new FramebufferWrapper());
-    uiFramebuffer->init(UI_SIZE);
-}
-
-#include "ShadertoyQt.h"
-
-#include <QQuickTextDocument>
-#include <QGuiApplication>
-#include <QQmlContext>
-#include <QDeclarativeEngine>
-
-using namespace oglplus;
-
 
 struct Preset {
     const Resource res;
@@ -512,7 +650,7 @@ struct Preset {
 };
 
 
-MainWindow::MainWindow() {
+ShadertoyApp::ShadertoyApp() {
     // Fixes an occasional crash caused by a race condition between the Rift
     // render thread and the UI thread, triggered when Rift swapbuffers overlaps
     // with the UI thread binding a new FBO (specifically, generating a texture
@@ -526,7 +664,7 @@ MainWindow::MainWindow() {
 
     fetcher.fetchNetworkShaders();
 
-    connect(&timer, &QTimer::timeout, this, &MainWindow::onTimer);
+    connect(&timer, &QTimer::timeout, this, &ShadertoyApp::onTimer);
     timer.start(100);
     setupOffscreenUi();
     onLoadPreset(0);
@@ -543,95 +681,19 @@ MainWindow::MainWindow() {
     });
 }
 
-void MainWindow::stop() {
+void ShadertoyApp::stop() {
     QRiftWindow::stop();
     delete uiWindow;
     uiWindow = nullptr;
 }
 
 
-QVariant MainWindow::getItemProperty(const QString & itemName, const QString & property) {
-    QQuickItem * item = rootItem->findChild<QQuickItem*>(itemName);
-    if (nullptr != item) {
-        return item->property(property.toLocal8Bit());
-    } else {
-        qWarning() << "Could not find item " << itemName << " on which to set property " << property;
-    }
-    return QVariant();
-}
-
-void MainWindow::setItemProperty(const QString & itemName, const QString & property, const QVariant & value) {
-    QQuickItem * item = rootItem->findChild<QQuickItem*>(itemName);
-    if (nullptr != item) {
-        bool result = item->setProperty(property.toLocal8Bit(), value);
-        if (!result) {
-            qWarning() << "Set property " << property << " on item " << itemName << " returned " << result;
-        }
-    } else {
-        qWarning() << "Could not find item " << itemName << " on which to set property " << property;
-    }
-}
-
-void MainWindow::setItemText(const QString & itemName, const QString & text) {
-    setItemProperty(itemName, "text", text);
-}
-
-QString MainWindow::getItemText(const QString & itemName) {
-    return getItemProperty(itemName, "text").toString();
-}
-
-void MainWindow::onToggleUi() {
-    uiVisible = !uiVisible;
-    setItemProperty("shaderTextEdit", "readOnly", !uiVisible);
-    if (uiVisible) {
-        animation.stop();
-        animation.setStartValue(0.0);
-        animation.setEndValue(1.0);
-        animation.setEasingCurve(QEasingCurve::OutBack);
-        animation.setDuration(500);
-        animation.start();
-        savedEyePosScale = eyeOffsetScale;
-        eyeOffsetScale = 0.0f;
-        uiWindow->resume();
-    } else {
-        animation.stop();
-        animation.setStartValue(1.0);
-        animation.setEndValue(0.0);
-        animation.setEasingCurve(QEasingCurve::InBack);
-        animation.setDuration(500);
-        animation.start();
-        eyeOffsetScale = savedEyePosScale;
-        uiWindow->pause();
-    }
-}
-
-void MainWindow::onLoadNextPreset() {
-    static const int PRESETS_SIZE = PRESETS.size();
-    int newPreset = (activePresetIndex + 1) % PRESETS_SIZE;
-    onLoadPreset(newPreset);
-}
-
-void MainWindow::onFontSizeChanged(int newSize) {
+void ShadertoyApp::onFontSizeChanged(int newSize) {
     settings.setValue("fontSize", newSize);
 }
 
-void MainWindow::onLoadPreviousPreset() {
-    static const int PRESETS_SIZE = PRESETS.size();
-    int newPreset = (activePresetIndex + PRESETS_SIZE - 1) % PRESETS_SIZE;
-    onLoadPreset(newPreset);
-}
 
-void MainWindow::onLoadPreset(int index) {
-    activePresetIndex = index;
-    loadShader(shadertoy::loadShaderFile(PRESETS.at(index)));
-}
-
-void MainWindow::onLoadShaderFile(const QString & shaderPath) {
-    qDebug() << "Loading shader from " << shaderPath;
-    loadShader(shadertoy::loadShaderFile(shaderPath));
-}
-
-void MainWindow::onNewShaderFilepath(const QString & shaderPath) {
+void ShadertoyApp::onNewShaderFilepath(const QString & shaderPath) {
     QDir newDir(shaderPath);
     QUrl url = QUrl::fromLocalFile(newDir.absolutePath());
     //    setItemProperty("userPresetsModel", "folder", url);
@@ -639,7 +701,7 @@ void MainWindow::onNewShaderFilepath(const QString & shaderPath) {
     qmlContext->setContextProperty("userPresetsFolder", url);
 }
 
-void MainWindow::onNewShaderHighlighted(const QString & shaderPath) {
+void ShadertoyApp::onNewShaderHighlighted(const QString & shaderPath) {
     qDebug() << "New shader highlighted " << shaderPath;
     QString previewPath = shaderPath;
     previewPath.replace(QRegularExpression("\\.(json|xml)$"), ".jpg");
@@ -651,7 +713,7 @@ void MainWindow::onNewShaderHighlighted(const QString & shaderPath) {
     }
 }
 
-void MainWindow::onNewPresetHighlighted(int presetId) {
+void ShadertoyApp::onNewPresetHighlighted(int presetId) {
     if (-1 != presetId && presetId < PRESETS.size()) {
         QString path = PRESETS.at(presetId);
         QString previewPath = path;
@@ -668,7 +730,7 @@ void MainWindow::onNewPresetHighlighted(int presetId) {
     //}
 }
 
-void MainWindow::onSaveShaderXml(const QString & shaderPath) {
+void ShadertoyApp::onSaveShaderXml(const QString & shaderPath) {
     Q_ASSERT(!shaderPath.isEmpty());
     //shadertoy::saveShaderXml(activeShader);
     activeShader.name = shaderPath.toLocal8Bit();
@@ -680,7 +742,7 @@ void MainWindow::onSaveShaderXml(const QString & shaderPath) {
     shadertoy::saveShaderXml(destinationFile, activeShader);
 }
 
-void MainWindow::onChannelTextureChanged(const int & channelIndex, const int & channelType, const QString & texturePath) {
+void ShadertoyApp::onChannelTextureChanged(const int & channelIndex, const int & channelType, const QString & texturePath) {
     qDebug() << "Requesting texture from path " << texturePath;
     queueRenderThreadTask([&, channelIndex, channelType, texturePath] {
         qDebug() << texturePath;
@@ -693,22 +755,7 @@ void MainWindow::onChannelTextureChanged(const int & channelIndex, const int & c
     });
 }
 
-void MainWindow::onShaderSourceChanged(const QString & shaderSource) {
-    queueRenderThreadTask([&, shaderSource] {
-        renderer.setShaderSourceInternal(shaderSource);
-        renderer.updateUniforms();
-    });
-}
-
-void MainWindow::onRecenterPosition() {
-#ifdef USE_RIFT
-    queueRenderThreadTask([&] {
-        ovrHmd_RecenterPose(hmd);
-    });
-#endif
-}
-
-void MainWindow::onModifyTextureResolution(double scale) {
+void ShadertoyApp::onModifyTextureResolution(double scale) {
     float newRes = scale * texRes;
     newRes = std::max(0.1f, std::min(1.0f, newRes));
     if (newRes != texRes) {
@@ -719,7 +766,7 @@ void MainWindow::onModifyTextureResolution(double scale) {
     }
 }
 
-void MainWindow::onModifyPositionScale(double scale) {
+void ShadertoyApp::onModifyPositionScale(double scale) {
     float newPosScale = scale * eyeOffsetScale;
     queueRenderThreadTask([&, newPosScale] {
         eyeOffsetScale = newPosScale;
@@ -728,7 +775,7 @@ void MainWindow::onModifyPositionScale(double scale) {
     setItemText("eps", QString().sprintf("%0.2f", newPosScale));
 }
 
-void MainWindow::onResetPositionScale() {
+void ShadertoyApp::onResetPositionScale() {
     queueRenderThreadTask([&] {
         eyeOffsetScale = 1.0f;
     });
@@ -736,35 +783,9 @@ void MainWindow::onResetPositionScale() {
     setItemText("eps", QString().sprintf("%0.2f", 1.0f));
 }
 
-void MainWindow::onToggleEyePerFrame() {
-#ifdef USE_RIFT
-    onEpfModeChanged(!eyePerFrameMode);
-#endif
-}
 
-void MainWindow::onEpfModeChanged(bool checked) {
-    bool newEyePerFrameMode = checked;
-#ifdef USE_RIFT
-    queueRenderThreadTask([&, newEyePerFrameMode] {
-        eyePerFrameMode = newEyePerFrameMode;
-    });
-#endif
-    setItemProperty("epf", "checked", newEyePerFrameMode);
-}
-
-void MainWindow::onRestartShader() {
-    queueRenderThreadTask([&] {
-        renderer.restart();
-    });
-}
-
-void MainWindow::onShutdown() {
-    QApplication::instance()->quit();
-}
-
-void MainWindow::onTimer() {
+void ShadertoyApp::onTimer() {
     TextureDeleteQueue tempTextureDeleteQueue;
-
     // Scope the lock tightly
     {
         Lock lock(textureLock);
@@ -780,29 +801,8 @@ void MainWindow::onTimer() {
     }
 }
 
-void MainWindow::loadShader(const shadertoy::Shader & shader) {
-    assert(!shader.fragmentSource.isEmpty());
-    activeShader = shader;
-    setItemText("shaderTextEdit", QString(shader.fragmentSource).replace(QString("\t"), QString("  ")));
-    setItemText("shaderName", shader.name);
-    for (int i = 0; i < 4; ++i) {
-        QString texturePath = renderer.canonicalTexturePath(activeShader.channelTextures[i]);
-        qDebug() << "Setting channel " << i << " to texture " << texturePath;
-        setItemProperty(QString().sprintf("channel%d", i), "source", "qrc:" + texturePath);
-    }
 
-    // FIXME update the channel texture buttons
-    queueRenderThreadTask([&, shader] {
-        renderer.setShaderInternal(shader);
-        renderer.updateUniforms();
-    });
-}
-
-void MainWindow::loadFile(const QString & file) {
-    loadShader(shadertoy::loadShaderFile(file));
-}
-
-void MainWindow::updateFps(float fps) {
+void ShadertoyApp::updateFps(float fps) {
     emit fpsUpdated(fps);
 }
 
@@ -816,13 +816,13 @@ void MainWindow::updateFps(float fps) {
 //
 // Event handling customization
 // 
-void MainWindow::mouseMoveEvent(QMouseEvent * me) {
+void ShadertoyApp::mouseMoveEvent(QMouseEvent * me) {
     // Make sure we don't show the system cursor over the window
     qApp->setOverrideCursor(QCursor(Qt::BlankCursor));
     QRiftWindow::mouseMoveEvent(me);
 }
 
-bool MainWindow::event(QEvent * e) {
+bool ShadertoyApp::event(QEvent * e) {
 #ifdef USE_RIFT
     static bool dismissedHmd = false;
     switch (e->type()) {
@@ -848,7 +848,7 @@ bool MainWindow::event(QEvent * e) {
     return QRiftWindow::event(e);
 }
 
-void MainWindow::resizeEvent(QResizeEvent *e) {
+void ShadertoyApp::resizeEvent(QResizeEvent *e) {
     uiWindow->setSourceSize(e->size());
 }
 
@@ -856,7 +856,7 @@ void MainWindow::resizeEvent(QResizeEvent *e) {
 //
 // Rendering functionality
 //
-void MainWindow::perFrameRender() {
+void ShadertoyApp::perFrameRender() {
     Context::Enable(Capability::Blend);
     Context::BlendFunc(BlendFunction::SrcAlpha, BlendFunction::OneMinusSrcAlpha);
     Context::Disable(Capability::ScissorTest);
@@ -921,7 +921,7 @@ void MainWindow::perFrameRender() {
     }
 }
 
-void MainWindow::perEyeRender() {
+void ShadertoyApp::perEyeRender() {
     // Render the shadertoy effect into a framebuffer, possibly at a
     // smaller resolution than recommended
     shaderFramebuffer->Bound([&] {
@@ -985,7 +985,7 @@ void MainWindow::perEyeRender() {
     }
 }
 
-void MainWindow::onSixDofMotion(const vec3 & tr, const vec3 & mo) {
+void ShadertoyApp::onSixDofMotion(const vec3 & tr, const vec3 & mo) {
     SAY("%f, %f, %f", tr.x, tr.y, tr.z);
     queueRenderThreadTask([&, tr, mo] {
         // FIXME 

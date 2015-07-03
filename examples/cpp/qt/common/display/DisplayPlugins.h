@@ -78,7 +78,8 @@ class Plugin {
             virtual void preRender() = 0;
             virtual void render(
                     uint32_t sceneTexture, const glm::uvec2& textureSize,
-                    uint32_t uiTexture = 0, const glm::uvec2& uiSize = glm::uvec2(), const glm::mat4& uiView = glm::mat4()) = 0;
+                    uint32_t uiTexture = 0, const glm::uvec2& uiSize = glm::uvec2(), 
+                    const glm::mat4& uiView = glm::mat4()) = 0;
             virtual void postRender() = 0;
 
             virtual glm::mat4 projection(Eye eye, const glm::mat4& baseProjection) const {
@@ -87,6 +88,9 @@ class Plugin {
 
             virtual glm::mat4 pose(Eye eye) const {
                 return glm::mat4();
+            }
+
+            virtual void resetPose() {
             }
 
         signals:

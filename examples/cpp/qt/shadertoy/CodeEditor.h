@@ -32,6 +32,7 @@ public:
 
     virtual void setHighlighter(QSyntaxHighlighter* highlighter);
     virtual void setText(const QString& text);
+    virtual QString text();
     virtual void setErrorText(const QString& text);
 
 private:

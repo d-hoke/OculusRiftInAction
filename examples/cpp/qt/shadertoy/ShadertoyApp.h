@@ -13,6 +13,7 @@ public:
     
     void activatePlugin(int index);
 
+    virtual bool eventFilter(QObject* receiver, QEvent* event) override;
 private:
     void initTracker();
     void initAppInformation();
@@ -34,35 +35,34 @@ private slots:
     void onFrameRequested();
     void onUiTextureReady(GLuint texture, GLsync sync);
     void onSizeChanged();
-//    void onShaderTextureReady(GLuint texture, GLsync sync);
+    //void onSixDofMotion(const vec3 & tr, const vec3 & mo);
+    //void onTimer();
+    //void onFontSizeChanged(int newSize);
+    //void onShaderTextureReady(GLuint texture, GLsync sync);
+    //void onNewShaderFilepath(const QString & shaderPath);
+    //void onNewShaderHighlighted(const QString & shaderPath);
+    //void onNewPresetHighlighted(int presetId);
 
-    void onToggleUi();
-    void onLoadNextPreset();
-    void onLoadPreviousPreset();
-    void onFontSizeChanged(int newSize);
+    void loadShader(const shadertoy::Shader & shader);
+    void loadShaderFile(const QString & shaderPath);
+    void loadPreset(int index);
+    void loadNextPreset();
+    void loadPreviousPreset();
 
-    void onLoadPreset(int index);
+    void recenterPose();
+    void toggleUi();
+    void buildShader();
 
-    void onLoadShaderFile(const QString & shaderPath);
 
-    void onNewShaderFilepath(const QString & shaderPath);
-    void onNewShaderHighlighted(const QString & shaderPath);
-    void onNewPresetHighlighted(int presetId);
+    //void onSaveShaderXml(const QString & shaderPath);
+    //void onChannelTextureChanged(const int & channelIndex, const int & channelType, const QString & texturePath);
+    //void onModifyTextureResolution(double scale);
+    //void onModifyPositionScale(double scale);
+    //void onResetPositionScale();
+    void toggleEyePerFrame();
+    void restartShader();
 
-    void onSaveShaderXml(const QString & shaderPath);
-    void onChannelTextureChanged(const int & channelIndex, const int & channelType, const QString & texturePath);
-    void onShaderSourceChanged(const QString & shaderSource);
-    void onRecenterPosition();
-    void onModifyTextureResolution(double scale);
-    void onModifyPositionScale(double scale);
-    void onResetPositionScale();
-    void onToggleEyePerFrame();
-    void onEpfModeChanged(bool checked);
-    void onRestartShader();
-    void onShutdown();
-    void onTimer();
-    void onSixDofMotion(const vec3 & tr, const vec3 & mo);
-
+    void queueRenderThreadTask(std::function<void()> f);
 private:
     Renderer _renderer;
     OffscreenGlSurface _surface;
@@ -72,6 +72,8 @@ private:
     Plugins::Display::Plugin* _activePlugin{ nullptr };
     QVariantAnimation animation;
     float animationValue;
+    float eyeOffsetScale{ 1.0f };
+    float savedEyeOffsetScale{ 1.0f };
 
     // We actually render the shader to one FBO for dynamic framebuffer scaling,
     // while leaving the actual texture we pass to the Oculus SDK fixed.

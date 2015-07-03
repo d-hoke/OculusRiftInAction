@@ -15,6 +15,10 @@ void CodeEditor::setHighlighter(QSyntaxHighlighter* highlighter) {
     //}
 }
 
+QString CodeEditor::text() {
+    return getTextArea()->property("text").toString();
+}
+
 void CodeEditor::setText(const QString& text) {
     getTextArea()->setProperty("text", text);
 }

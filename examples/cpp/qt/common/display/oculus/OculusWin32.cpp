@@ -276,6 +276,11 @@ class OculusWin32DisplayPlugin : public Plugins::Display::Plugin {
             uint32_t sceneTexture, const glm::uvec2& textureSize,
             uint32_t uiTexture, const glm::uvec2& uiSize, const glm::mat4& uiView) override;
     virtual void postRender() override;
+
+    virtual void resetPose() {
+        ovrHmd_RecenterPose(_hmd);
+    }
+
 private:
     void resizedMirror();
 
