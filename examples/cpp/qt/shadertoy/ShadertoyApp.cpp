@@ -63,8 +63,6 @@ QQuickView* MAIN_WINDOW{ nullptr };
 Plugin** DISPLAY_PLUGINS{ nullptr };
 size_t DISPLAY_PLUGIN_COUNT;
 
-
-
 struct TextureContainer {
     GLuint texture{ 0 };
     GLsync writeSync{ 0 };
@@ -241,6 +239,7 @@ void ShadertoyApp::setupOffscreenUi() {
     });
 
     auto rootItem = _uiSurface.getRootItem();
+
     _codeEditor = rootItem->findChild<CodeEditor*>();
     _codeEditor->setHighlighter(new GlslHighlighter());
     _codeEditor->setText("Test text");

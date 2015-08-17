@@ -23,8 +23,12 @@ limitations under the License.
 
 class ChannelsColumn : public QQuickItem {
     Q_OBJECT
+    Q_INVOKABLE void channelSelect(int index);
 
 public:
     ChannelsColumn(QQuickItem* parent = nullptr);
     virtual ~ChannelsColumn();
+
+private:
+    QQuickItem* _sources[4];
 };

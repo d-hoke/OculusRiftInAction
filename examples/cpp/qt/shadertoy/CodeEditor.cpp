@@ -9,10 +9,11 @@ CodeEditor::~CodeEditor() {
 
 void CodeEditor::setHighlighter(QSyntaxHighlighter* highlighter) {
     _highlighter = highlighter;
-    //if (editorControl) {
-    //    highlighter.setDocument(
-    //        editorControl->property("textDocument").value<QQuickTextDocument*>()->textDocument());
-    //}
+    if (_highlighter) {
+        auto textEdit = this->findChild<QQuickItem*>("textEdit");
+        auto textDoc = textEdit->property("textDocument").value<QQuickTextDocument*>()->textDocument();
+        _highlighter->setDocument(textDoc);
+    }
 }
 
 QString CodeEditor::text() {

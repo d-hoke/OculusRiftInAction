@@ -5,7 +5,6 @@ import Qt.labs.settings 1.0
 import ShadertoyVR 1.0 as ShadertoyVR
 
 ShadertoyVR.ChannelsColumn {
-//Item {
     id: root
     implicitWidth: channelColumn.width
     implicitHeight: channelColumn.height

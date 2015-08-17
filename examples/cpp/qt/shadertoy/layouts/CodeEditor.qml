@@ -101,7 +101,7 @@ ShadertoyVR.CodeEditor {
 
                 TextArea {
                     id: compileErrors
-                    readonly: true
+                    readOnly: true
                     objectName: "compileErrors"
                     style: TextAreaStyle {
                         backgroundColor: "#00000000"
