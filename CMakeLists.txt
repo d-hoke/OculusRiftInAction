@@ -6,6 +6,14 @@ set(CMAKE_USER_MAKE_RULES_OVERRIDE_CXX
 
 project(OculusRiftExamples)
 
+set(MACRO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/macros")
+set(EXTERNAL_PROJECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/externals")
+file(GLOB CUSTOM_MACROS "cmake/macros/*.cmake")
+foreach(CUSTOM_MACRO ${CUSTOM_MACROS})
+  include(${CUSTOM_MACRO})
+endforeach()
+
+
 cmake_minimum_required(VERSION 2.8)
 include(GenerateExportHeader)
 include(FindPackageHandleStandardArgs)
@@ -111,13 +119,6 @@ list(APPEND EXAMPLE_LIBS ExampleResources)
 #
 # All our includes for the used libraries
 #
-
-include_directories(${BOOSTCONFIG_INCLUDE_DIRS})
-include_directories(${GLM_INCLUDE_DIRS})
-include_directories(${GLEW_INCLUDE_DIRS})
-include_directories(${GLFW_INCLUDE_DIRS})
-include_directories(${OGLPLUS_INCLUDE_DIRS})
-include_directories(${LIBOVR_INCLUDE_DIRS})
 
 ###############################################################################
 #

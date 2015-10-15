@@ -729,7 +729,7 @@ protected:
             color = nullptr;
         }
 
-        if (!OVR_SUCCESS(ovr_CreateSwapTextureSetGL(hmd, GL_RGBA, size.x, size.y, &color))) {
+        if (!OVR_SUCCESS(ovr_CreateSwapTextureSetGL(hmd, GL_SRGB8_ALPHA8, size.x, size.y, &color))) {
             FAIL("Unable to create swap textures");
         }
 
@@ -887,7 +887,7 @@ protected:
     }
 
     virtual void draw() final {
-        ovr_GetEyePoses(hmd, frameIndex, eyeOffsets, eyePoses, nullptr);
+        ovr_GetEyePoses(hmd, frameIndex, true, eyeOffsets, eyePoses, nullptr);
         ovr::for_each_eye([&](ovrEyeType eye) {
             // Render the scene to an offscreen buffer
             eyeFbos[eye]->Bound([&] {

@@ -59,7 +59,7 @@ void RiftRenderingApp::drawRiftFrame() {
 
   ovrPosef fetchPoses[2];
   ovrLayerEyeFov & layer = layers[0].EyeFov;
-  ovr_GetEyePoses(hmd, frameCount, eyeOffsets, fetchPoses, nullptr);
+  ovr_GetEyePoses(hmd, frameCount, true, eyeOffsets, fetchPoses, nullptr);
   for_each_eye([&](ovrEyeType eye){
       currentEye = eye;
       EyeParams & eyeParams = eyesParams[eye];

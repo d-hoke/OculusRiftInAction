@@ -113,7 +113,7 @@ public:
   void draw() {
     static int frameIndex = 0;
     static ovrPosef eyePoses[2];
-    ovr_GetEyePoses(hmd, frameIndex, eyeOffsets, eyePoses, nullptr);
+    ovr_GetEyePoses(hmd, frameIndex, true, eyeOffsets, eyePoses, nullptr);
     glEnable(GL_DEPTH_TEST);
 
     for (int i = 0; i < 2; ++i) {

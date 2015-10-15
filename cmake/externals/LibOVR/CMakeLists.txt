@@ -8,8 +8,8 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 if (WIN32)
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL http://static.oculus.com/sdk-downloads/0.7.0.0/Public/1440610361/ovr_sdk_win_0.7.0.0.zip
-    URL_MD5 1c922bdc0d026c741c0cff1dce6698c2
+    URL http://static.oculus.com/sdk-downloads/0.8.0.0/Public/1445451746/ovr_sdk_win_0.8.0.0.zip
+    URL_MD5 54944b03b95149d6010f84eb701b9647
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""

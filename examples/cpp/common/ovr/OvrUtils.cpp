@@ -48,7 +48,7 @@ namespace ovr {
 
   void SwapTextureFramebufferWrapper::initColor() {
     // FIXME deallocate any previously created swap texutre set if the size has changed.
-    if (!OVR_SUCCESS(ovr_CreateSwapTextureSetGL(hmd, GL_RGBA, size.x, size.y, &textureSet))) {
+    if (!OVR_SUCCESS(ovr_CreateSwapTextureSetGL(hmd, GL_SRGB8_ALPHA8, size.x, size.y, &textureSet))) {
       FAIL("Unable to create swap textures");
     }
 
